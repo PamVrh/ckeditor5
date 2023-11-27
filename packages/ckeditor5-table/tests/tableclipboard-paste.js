@@ -16,7 +16,7 @@ import Paragraph from '@ckeditor/ckeditor5-paragraph/src/paragraph.js';
 import Input from '@ckeditor/ckeditor5-typing/src/input.js';
 import testUtils from '@ckeditor/ckeditor5-core/tests/_utils/utils.js';
 import { getData as getModelData, setData as setModelData } from '@ckeditor/ckeditor5-engine/src/dev-utils/model.js';
-import { assertSelectedCells, modelTable, viewTable } from './_utils/utils.js';
+import { assertSelectedCells, formatAttributes, modelTable, viewTable } from './_utils/utils.js';
 
 import TableEditing from '../src/tableediting.js';
 import TableCellPropertiesEditing from '../src/tablecellproperties/tablecellpropertiesediting.js';
@@ -4070,6 +4070,143 @@ describe( 'table clipboard', () => {
 				[ tableModelData ]
 			] ) );
 		} );
+	} );
+
+	describe( 'Clipboard integration - paste (marker scenarios)', () => {
+		beforeEach( async () => {
+			await createEditor();
+
+			markerConversion();
+		} );
+
+		it( 'should paste table with single marker to single cell', () => {
+			setModelData( model, modelTable( [ [ 'FooBarr' ] ] ) + modelTable( [ [ 'Test' ] ] ) );
+
+			model.change( writer => {
+				writer.setSelection( modelRoot.getNodeByPath( [ 1, 0, 0 ] ), 0 );
+			} );
+
+			pasteTable(
+				[ [ wrapWithMarker( 'FooBarr', 'comment', { name: 'paste' } ) ] ]
+			);
+
+			const paragraph = modelRoot.getNodeByPath( [ 1, 0, 0, 0 ] );
+
+			checkMarker( 'comment:paste', model.createRangeIn( paragraph ) );
+		} );
+
+		it( 'should paste table with multiple markers to multiple cells', () => {
+			setModelData( model, modelTable( [ [ 'FooBarr' ] ] ) + modelTable( [ [ 'Test' ] ] ) );
+
+			model.change( writer => {
+				writer.setSelection( modelRoot.getNodeByPath( [ 1, 0, 0 ] ), 0 );
+			} );
+
+			pasteTable(
+				[
+					[
+						wrapWithMarker( 'First', 'comment', { name: 'pre' } ),
+						wrapWithMarker( 'Second', 'comment', { name: 'post' } )
+					]
+				]
+			);
+
+			const prePosition = model.createRange(
+				model.createPositionFromPath( modelRoot, [ 1, 0, 0, 0, 0 ] ),
+				model.createPositionFromPath( modelRoot, [ 1, 0, 0, 0, 5 ] )
+			);
+
+			const postPosition = model.createRange(
+				model.createPositionFromPath( modelRoot, [ 1, 0, 1, 0, 0 ] ),
+				model.createPositionFromPath( modelRoot, [ 1, 0, 1, 0, 6 ] )
+			);
+
+			checkMarker( 'comment:pre', prePosition );
+			checkMarker( 'comment:post', postPosition );
+		} );
+
+		it( 'should paste table with multiple markers to single cell', () => {
+			setModelData( model, modelTable( [ [ 'FooBarr' ] ] ) + modelTable( [ [ 'Test' ] ] ) );
+
+			model.change( writer => {
+				writer.setSelection( modelRoot.getNodeByPath( [ 1, 0, 0 ] ), 0 );
+			} );
+
+			pasteTable(
+				[
+					[
+						wrapWithMarker( 'FooBarr', 'comment', { name: 'pre' } ) +
+						'foo fo fooo' +
+						wrapWithMarker( 'a foo bar fo bar', 'comment', { name: 'post' } )
+					]
+				]
+			);
+
+			const prePosition = model.createRange(
+				model.createPositionFromPath( modelRoot, [ 1, 0, 0, 0, 0 ] ),
+				model.createPositionFromPath( modelRoot, [ 1, 0, 0, 0, 7 ] )
+			);
+
+			const postPosition = model.createRange(
+				model.createPositionFromPath( modelRoot, [ 1, 0, 0, 0, 18 ] ),
+				model.createPositionFromPath( modelRoot, [ 1, 0, 0, 0, 34 ] )
+			);
+
+			checkMarker( 'comment:pre', prePosition );
+			checkMarker( 'comment:post', postPosition );
+		} );
+
+		it( 'should handle paste markers that contain markers', () => {
+			setModelData( model, modelTable( [ [ 'Hello World' ] ] ) + modelTable( [ [ 'Test' ] ] ) );
+
+			model.change( writer => {
+				writer.setSelection( modelRoot.getNodeByPath( [ 1, 0, 0 ] ), 0 );
+			} );
+
+			const innerMarker = wrapWithMarker( 'ello', 'comment', { name: 'inner' } );
+			const outerMarker = wrapWithMarker( 'H' + innerMarker + ' world', 'comment', { name: 'outer' } );
+
+			pasteTable(
+				[ [ outerMarker ] ]
+			);
+
+			checkMarker( 'comment:outer', model.createRange(
+				model.createPositionFromPath( modelRoot, [ 1, 0, 0, 0, 0 ] ),
+				model.createPositionFromPath( modelRoot, [ 1, 0, 0, 0, 11 ] )
+			) );
+
+			checkMarker( 'comment:inner', model.createRange(
+				model.createPositionFromPath( modelRoot, [ 1, 0, 0, 0, 1 ] ),
+				model.createPositionFromPath( modelRoot, [ 1, 0, 0, 0, 5 ] )
+			) );
+		} );
+
+		function wrapWithMarker( contents, marker, attrs ) {
+			const formattedAttributes = formatAttributes( attrs );
+
+			return [
+				`<${ marker }-start${ formattedAttributes }></${ marker }-start>`,
+				contents,
+				`<${ marker }-end${ formattedAttributes }></${ marker }-end>`
+			].join( '' );
+		}
+
+		function checkMarker( name, range ) {
+			const marker = editor.model.markers.get( name );
+
+			expect( marker ).to.not.be.null;
+			expect( marker.getRange().isEqual( range ) ).to.be.true;
+		}
+
+		function markerConversion( ) {
+			editor.conversion.for( 'downcast' ).markerToData( {
+				model: 'comment'
+			} );
+
+			editor.conversion.for( 'upcast' ).dataToMarker( {
+				view: 'comment'
+			} );
+		}
 	} );
 
 	describe( 'getTableIfOnlyTableInContent()', () => {

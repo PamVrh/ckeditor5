@@ -11,6 +11,7 @@ export { default as Clipboard } from './clipboard.js';
 export {
 	default as ClipboardPipeline,
 	type ClipboardContentInsertionEvent,
+	type ClipboardContentInsertionData,
 	type ClipboardInputTransformationEvent,
 	type ClipboardInputTransformationData,
 	type ClipboardOutputTransformationEvent,
