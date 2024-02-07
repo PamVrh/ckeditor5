@@ -179,6 +179,21 @@ describe( 'Differ', () => {
 			} );
 		} );
 
+		it( 'inserted node group attribute keeps the same reference in multiple changes', () => {
+			const text = new Text( 'xyz', { bold: true } );
+			const position = new Position( root, [ 0, 3 ] );
+			const element = root.getChild( 0 );
+
+			model.change( () => {
+				insert( text, position );
+				rename( element, 'listItem' );
+
+				const diff = differ.getChanges();
+
+				expect( diff[ 0 ].group ).equal( diff[ 1 ].group );
+			} );
+		} );
+
 		it( 'node in a element with changed attribute', () => {
 			const text = new Text( 'xyz', { bold: true } );
 			const position = new Position( root, [ 0, 3 ] );

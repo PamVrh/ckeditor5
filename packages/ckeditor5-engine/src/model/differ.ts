@@ -1107,7 +1107,7 @@ export default class Differ {
 	 * @param parent The element in which the change happened.
 	 * @param offset The offset at which change happened.
 	 * @param elementSnapshot The snapshot of the removed element a character.
-	 * @param group Optional information about operations group.
+	 * @param group Information to identify an operation that has several sub-operations in it (like rename).
 	 * @returns The diff item.
 	 */
 	private _getInsertDiff(
@@ -1133,7 +1133,7 @@ export default class Differ {
 	 * @param parent The element in which change happened.
 	 * @param offset The offset at which change happened.
 	 * @param elementSnapshot The snapshot of the removed element a character.
-	 * @param group Optional information about operations group.
+	 * @param group Information to identify an operation that has several sub-operations in it (like rename).
 	 * @returns The diff item.
 	 */
 	private _getRemoveDiff(
@@ -1256,13 +1256,13 @@ export default class Differ {
 	}
 }
 
-type BiDirectionalChangeGroupDetails<T extends string, C extends object> = {
+interface BaseChangeGroupDetails<T extends string, C extends object> {
 	type: T;
 	before: C;
 	after: C;
-};
+}
 
-type ChangeGroupDetails = BiDirectionalChangeGroupDetails<'rename', {
+type ChangeGroupDetails = BaseChangeGroupDetails<'rename', {
 	name: string;
 }>;
 
@@ -1348,10 +1348,10 @@ function _getChildrenSnapshot( children: Iterable<Node> ): Array<DifferSnapshot>
  *
  * The result actions are: equal, remove, equal, insert, insert, attribute, equal, equal.
  */
-type GroupedAction = {
+interface GroupedAction {
 	name: string;
 	group?: ChangeGroupDetails;
-};
+}
 
 function _generateActionsFromChanges( oldChildrenLength: number, changes: Array<ChangeItem> ): Array<GroupedAction> {
 	const actions: Array<GroupedAction> = [];
