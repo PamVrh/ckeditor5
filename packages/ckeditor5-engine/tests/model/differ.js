@@ -168,10 +168,7 @@ describe( 'Differ', () => {
 						name: 'paragraph',
 						length: 1,
 						position: new Position( root, [ 0 ] ),
-						attributes: new Map(),
-						group: {
-							type: 'rename'
-						}
+						attributes: new Map()
 					},
 					{
 						type: 'insert',
@@ -181,27 +178,9 @@ describe( 'Differ', () => {
 						before: {
 							name: 'paragraph',
 							attributes: new Map()
-						},
-						group: {
-							type: 'rename'
 						}
 					}
 				] );
-			} );
-		} );
-
-		it( 'inserted node group attribute keeps the same reference in multiple changes', () => {
-			const text = new Text( 'xyz', { bold: true } );
-			const position = new Position( root, [ 0, 3 ] );
-			const element = root.getChild( 0 );
-
-			model.change( () => {
-				insert( text, position );
-				rename( element, 'listItem' );
-
-				const diff = differ.getChanges();
-
-				expect( diff[ 0 ].group ).equal( diff[ 1 ].group );
 			} );
 		} );
 
@@ -3040,7 +3019,7 @@ describe( 'Differ', () => {
 				if ( Object.prototype.hasOwnProperty.call( expected[ i ], key ) ) {
 					if ( key == 'position' || key == 'range' ) {
 						expect( changes[ i ][ key ].isEqual( expected[ i ][ key ] ), `item ${ i }, key "${ key }"` ).to.be.true;
-					} else if ( key == 'attributes' || key == 'group' || key == 'before' ) {
+					} else if ( key == 'attributes' || key == 'before' ) {
 						expect( changes[ i ][ key ], `item ${ i }, key "${ key }"` ).to.deep.equal( expected[ i ][ key ] );
 					} else {
 						expect( changes[ i ][ key ], `item ${ i }, key "${ key }"` ).to.equal( expected[ i ][ key ] );
