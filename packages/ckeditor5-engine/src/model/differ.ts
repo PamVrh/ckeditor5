@@ -1249,17 +1249,12 @@ export default class Differ {
 	}
 }
 
-type ChangeGroupDetails = {
-	type: 'rename';
-};
-
 interface ChangeItem {
 	type: 'insert' | 'remove' | 'attribute';
 	offset: number;
 	howMany: number;
 	count: number;
 	nodesToHandle?: number;
-	group?: ChangeGroupDetails;
 }
 
 /**
@@ -1490,11 +1485,6 @@ export interface DiffItemRemove {
 	 * The length of a removed text node. For elements, it is always 1, as each removed element is counted as a one.
 	 */
 	length: number;
-
-	/**
-	 * Attribute used to detect if there is multiple operations connected together (e.g. rename).
-	 */
-	group?: ChangeGroupDetails;
 }
 
 /**
