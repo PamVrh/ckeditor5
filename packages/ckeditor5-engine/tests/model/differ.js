@@ -161,20 +161,31 @@ describe( 'Differ', () => {
 				insert( text, position );
 				rename( element, 'listItem' );
 
-				const group = {
-					type: 'rename',
-					before: {
-						name: 'paragraph'
-					},
-					after: {
-						name: 'listItem'
-					}
-				};
-
 				// Note that since renamed element is removed and then re-inserted, there is no diff for text inserted inside it.
 				expectChanges( [
-					{ type: 'remove', name: 'paragraph', length: 1, position: new Position( root, [ 0 ] ), group },
-					{ type: 'insert', name: 'listItem', length: 1, position: new Position( root, [ 0 ] ), group }
+					{
+						type: 'remove',
+						name: 'paragraph',
+						length: 1,
+						position: new Position( root, [ 0 ] ),
+						attributes: new Map(),
+						group: {
+							type: 'rename'
+						}
+					},
+					{
+						type: 'insert',
+						name: 'listItem',
+						length: 1,
+						position: new Position( root, [ 0 ] ),
+						before: {
+							name: 'paragraph',
+							attributes: new Map()
+						},
+						group: {
+							type: 'rename'
+						}
+					}
 				] );
 			} );
 		} );
@@ -3029,7 +3040,7 @@ describe( 'Differ', () => {
 				if ( Object.prototype.hasOwnProperty.call( expected[ i ], key ) ) {
 					if ( key == 'position' || key == 'range' ) {
 						expect( changes[ i ][ key ].isEqual( expected[ i ][ key ] ), `item ${ i }, key "${ key }"` ).to.be.true;
-					} else if ( key == 'attributes' || key == 'group' ) {
+					} else if ( key == 'attributes' || key == 'group' || key == 'before' ) {
 						expect( changes[ i ][ key ], `item ${ i }, key "${ key }"` ).to.deep.equal( expected[ i ][ key ] );
 					} else {
 						expect( changes[ i ][ key ], `item ${ i }, key "${ key }"` ).to.equal( expected[ i ][ key ] );

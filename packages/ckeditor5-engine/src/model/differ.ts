@@ -195,13 +195,7 @@ export default class Differ {
 				}
 
 				const group: ChangeGroupDetails = {
-					type: 'rename',
-					before: {
-						name: operation.oldName
-					},
-					after: {
-						name: operation.newName
-					}
+					type: 'rename'
 				};
 
 				this._markRemove( operation.position.parent, operation.position.offset, 1, group );
@@ -488,7 +482,7 @@ export default class Differ {
 
 				if ( name === 'i' ) {
 					// Generate diff item for this element and insert it into the diff set.
-					diffSet.push( this._getInsertDiff( element, i, elementChildren[ i ], group ) );
+					diffSet.push( this._getInsertDiff( element, i, elementChildren[ i ], snapshotChildren[ j ], group ) );
 
 					i++;
 				} else if ( name === 'r' ) {
@@ -1106,24 +1100,32 @@ export default class Differ {
 	 *
 	 * @param parent The element in which the change happened.
 	 * @param offset The offset at which change happened.
-	 * @param elementSnapshot The snapshot of the removed element a character.
+	 * @param currentElementSnapshot Map of attributes of the inserted element
+	 * @param removedElementSnapshot Map of the attributes of the removed elements before all changes
 	 * @param group Information to identify an operation that has several sub-operations in it (like rename).
 	 * @returns The diff item.
 	 */
 	private _getInsertDiff(
 		parent: Element | DocumentFragment,
 		offset: number,
-		elementSnapshot: DifferSnapshot,
+		currentElementSnapshot: DifferSnapshot,
+		removedElementSnapshot?: DifferSnapshot,
 		group?: ChangeGroupDetails
 	): DiffItemInsert & DiffItemInternal {
 		return {
 			type: 'insert',
 			position: Position._createAt( parent, offset ),
-			name: elementSnapshot.name,
-			attributes: new Map( elementSnapshot.attributes ),
+			name: currentElementSnapshot.name,
+			attributes: new Map( currentElementSnapshot.attributes ),
 			length: 1,
 			changeCount: this._changeCount++,
-			group
+			group,
+			...removedElementSnapshot && {
+				before: {
+					name: removedElementSnapshot.name,
+					attributes: new Map( removedElementSnapshot.attributes )
+				}
+			}
 		};
 	}
 
@@ -1256,15 +1258,9 @@ export default class Differ {
 	}
 }
 
-interface BaseChangeGroupDetails<T extends string, C extends object> {
-	type: T;
-	before: C;
-	after: C;
-}
-
-type ChangeGroupDetails = BaseChangeGroupDetails<'rename', {
-	name: string;
-}>;
+type ChangeGroupDetails = {
+	type: 'rename';
+};
 
 interface ChangeItem {
 	type: 'insert' | 'remove' | 'attribute';
@@ -1450,7 +1446,7 @@ export interface DiffItemInsert {
 	name: string;
 
 	/**
-	 * Map of attributes that were set on the item while it was inserted.
+	 * Map of attributes of the inserted element.
 	 */
 	attributes: Map<string, unknown>;
 
@@ -1468,6 +1464,19 @@ export interface DiffItemInsert {
 	 * Attribute used to detect if there is multiple operations connected together (e.g. rename).
 	 */
 	group?: ChangeGroupDetails;
+
+	before?: {
+
+		/**
+		 * The name of the removed element before all changes.
+		 */
+		name: string;
+
+		/**
+		 * Map of the attributes of the removed elements before all changes.
+		 */
+		attributes: Map<string, unknown>;
+	};
 }
 
 /**
