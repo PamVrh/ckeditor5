@@ -461,7 +461,7 @@ export default class Differ {
 				return a.offset < b.offset ? -1 : 1;
 			} );
 
-			// Get children of this element before any change was applied on it.
+			// Get children and parent of this element before any change was applied on it.
 			const snapshotChildren = this._elementSnapshots.get( element )!;
 			// Get snapshot of current element's children.
 			const elementChildren = _getChildrenSnapshot( element.getChildren() );
@@ -476,7 +476,9 @@ export default class Differ {
 			for ( const action of actions ) {
 				if ( action === 'i' ) {
 					// Generate diff item for this element and insert it into the diff set.
-					diffSet.push( this._getInsertDiff( element, i, elementChildren[ i ], snapshotChildren[ j ] ) );
+					const maybeChildElementSnapshot = snapshotChildren.find( snapshot => snapshot.node === elementChildren[ i ].node );
+
+					diffSet.push( this._getInsertDiff( element, i, elementChildren[ i ], maybeChildElementSnapshot ) );
 
 					i++;
 				} else if ( action === 'r' ) {
@@ -774,12 +776,12 @@ export default class Differ {
 	/**
 	 * Saves and handles an insert change.
 	 */
-	private _markInsert( parent: Element | DocumentFragment, offset: number, howMany: number, group?: ChangeGroupDetails ) {
+	private _markInsert( parent: Element | DocumentFragment, offset: number, howMany: number ) {
 		if ( parent.root.is( 'rootElement' ) && !parent.root._isLoaded ) {
 			return;
 		}
 
-		const changeItem = { type: 'insert', offset, howMany, group, count: this._changeCount++ } as const;
+		const changeItem = { type: 'insert', offset, howMany, count: this._changeCount++ } as const;
 
 		this._markChange( parent, changeItem );
 	}
@@ -787,12 +789,12 @@ export default class Differ {
 	/**
 	 * Saves and handles a remove change.
 	 */
-	private _markRemove( parent: Element | DocumentFragment, offset: number, howMany: number, group?: ChangeGroupDetails ) {
+	private _markRemove( parent: Element | DocumentFragment, offset: number, howMany: number ) {
 		if ( parent.root.is( 'rootElement' ) && !parent.root._isLoaded ) {
 			return;
 		}
 
-		const changeItem = { type: 'remove', offset, howMany, group, count: this._changeCount++ } as const;
+		const changeItem = { type: 'remove', offset, howMany, count: this._changeCount++ } as const;
 
 		this._markChange( parent, changeItem );
 
@@ -1126,14 +1128,12 @@ export default class Differ {
 	 * @param parent The element in which change happened.
 	 * @param offset The offset at which change happened.
 	 * @param elementSnapshot The snapshot of the removed element a character.
-	 * @param group Information to identify an operation that has several sub-operations in it (like rename).
 	 * @returns The diff item.
 	 */
 	private _getRemoveDiff(
 		parent: Element | DocumentFragment,
 		offset: number,
-		elementSnapshot: DifferSnapshot,
-		group?: ChangeGroupDetails
+		elementSnapshot: DifferSnapshot
 	): DiffItemRemove & DiffItemInternal {
 		return {
 			type: 'remove',
@@ -1141,8 +1141,7 @@ export default class Differ {
 			name: elementSnapshot.name,
 			attributes: new Map( elementSnapshot.attributes ),
 			length: 1,
-			changeCount: this._changeCount++,
-			group
+			changeCount: this._changeCount++
 		};
 	}
 
@@ -1268,12 +1267,14 @@ function _getChildrenSnapshot( children: Iterable<Node> ): Array<DifferSnapshot>
 		if ( child.is( '$text' ) ) {
 			for ( let i = 0; i < child.data.length; i++ ) {
 				snapshot.push( {
+					node: child,
 					name: '$text',
 					attributes: new Map( child.getAttributes() )
 				} );
 			}
 		} else {
 			snapshot.push( {
+				node: child,
 				name: ( child as Element ).name,
 				attributes: new Map( child.getAttributes() )
 			} );
@@ -1397,6 +1398,7 @@ function _changesInGraveyardFilter( entry: DiffItem ) {
 }
 
 interface DifferSnapshot {
+	node: Node | Element;
 	name: string;
 	attributes: Map<string, unknown>;
 }
