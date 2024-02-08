@@ -655,8 +655,6 @@ describe( 'Differ', () => {
 
 			model.change( () => {
 				rename( element, 'listItem' );
-
-				// Note that since renamed element is removed and then re-inserted, there is no diff for text inserted inside it.
 				expectChanges( [
 					{
 						type: 'remove',
