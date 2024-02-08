@@ -645,6 +645,39 @@ describe( 'Differ', () => {
 				expectChanges( [] );
 			} );
 		} );
+
+		it( 'attributes of removed node are preserved in `before` attribute of new node', () => {
+			const element = root.getChild( 0 );
+
+			model.change( writer => {
+				writer.setAttribute( 'test', 123, element );
+			} );
+
+			model.change( () => {
+				rename( element, 'listItem' );
+
+				// Note that since renamed element is removed and then re-inserted, there is no diff for text inserted inside it.
+				expectChanges( [
+					{
+						type: 'remove',
+						name: 'paragraph',
+						length: 1,
+						position: new Position( root, [ 0 ] ),
+						attributes: new Map( [ [ 'test', 123 ] ] )
+					},
+					{
+						type: 'insert',
+						name: 'listItem',
+						length: 1,
+						position: new Position( root, [ 0 ] ),
+						before: {
+							name: 'paragraph',
+							attributes: new Map( [ [ 'test', 123 ] ] )
+						}
+					}
+				] );
+			} );
+		} );
 	} );
 
 	// The only main difference between remove operation and move operation is target position.
