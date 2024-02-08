@@ -194,8 +194,8 @@ export default class Differ {
 					return;
 				}
 
-				this._markRemove( operation.position.parent, operation.position.offset, 1 );
-				this._markInsert( operation.position.parent, operation.position.offset, 1 );
+				this._markRemove( operation.position.parent, operation.position.offset, 1, 'rename' );
+				this._markInsert( operation.position.parent, operation.position.offset, 1, 'rename' );
 
 				const range = Range._createFromPositionAndShift( operation.position, 1 );
 
@@ -473,20 +473,20 @@ export default class Differ {
 			let j = 0; // Iterator in `snapshotChildren` array -- iterates through old children of element.
 
 			// Process every action.
-			for ( const action of actions ) {
-				if ( action === 'i' ) {
+			for ( const [ action, name ] of actions ) {
+				if ( name === 'i' ) {
 					// Generate diff item for this element and insert it into the diff set.
 					const maybeChildElementSnapshot = snapshotChildren.find( snapshot => snapshot.node === elementChildren[ i ].node );
 
-					diffSet.push( this._getInsertDiff( element, i, elementChildren[ i ], maybeChildElementSnapshot ) );
+					diffSet.push( this._getInsertDiff( element, i, elementChildren[ i ], maybeChildElementSnapshot, action ) );
 
 					i++;
-				} else if ( action === 'r' ) {
+				} else if ( name === 'r' ) {
 					// Generate diff item for this element and insert it into the diff set.
-					diffSet.push( this._getRemoveDiff( element, i, snapshotChildren[ j ] ) );
+					diffSet.push( this._getRemoveDiff( element, i, snapshotChildren[ j ], action ) );
 
 					j++;
-				} else if ( action === 'a' ) {
+				} else if ( name === 'a' ) {
 					// Take attributes from saved and current children.
 					const elementAttributes = elementChildren[ i ].attributes;
 					const snapshotAttributes = snapshotChildren[ j ].attributes;
@@ -719,8 +719,8 @@ export default class Differ {
 			return;
 		}
 
-		this._markRemove( item.parent!, item.startOffset!, item.offsetSize );
-		this._markInsert( item.parent!, item.startOffset!, item.offsetSize );
+		this._markRemove( item.parent!, item.startOffset!, item.offsetSize, 'refresh' );
+		this._markInsert( item.parent!, item.startOffset!, item.offsetSize, 'refresh' );
 
 		this._refreshedItems.add( item );
 
@@ -776,12 +776,12 @@ export default class Differ {
 	/**
 	 * Saves and handles an insert change.
 	 */
-	private _markInsert( parent: Element | DocumentFragment, offset: number, howMany: number ) {
+	private _markInsert( parent: Element | DocumentFragment, offset: number, howMany: number, action?: ChangeItemAction ) {
 		if ( parent.root.is( 'rootElement' ) && !parent.root._isLoaded ) {
 			return;
 		}
 
-		const changeItem = { type: 'insert', offset, howMany, count: this._changeCount++ } as const;
+		const changeItem = { type: 'insert', action, offset, howMany, count: this._changeCount++ } as const;
 
 		this._markChange( parent, changeItem );
 	}
@@ -789,12 +789,12 @@ export default class Differ {
 	/**
 	 * Saves and handles a remove change.
 	 */
-	private _markRemove( parent: Element | DocumentFragment, offset: number, howMany: number ) {
+	private _markRemove( parent: Element | DocumentFragment, offset: number, howMany: number, action?: ChangeItemAction ) {
 		if ( parent.root.is( 'rootElement' ) && !parent.root._isLoaded ) {
 			return;
 		}
 
-		const changeItem = { type: 'remove', offset, howMany, count: this._changeCount++ } as const;
+		const changeItem = { type: 'remove', action, offset, howMany, count: this._changeCount++ } as const;
 
 		this._markChange( parent, changeItem );
 
@@ -1098,16 +1098,19 @@ export default class Differ {
 	 * @param offset The offset at which change happened.
 	 * @param currentElementSnapshot Map of attributes of the inserted element
 	 * @param removedElementSnapshot Map of the attributes of the removed elements before all changes
+	 * @param action Indicates if insert is part of operation that consist multiple suboperations.
 	 * @returns The diff item.
 	 */
 	private _getInsertDiff(
 		parent: Element | DocumentFragment,
 		offset: number,
 		currentElementSnapshot: DifferSnapshot,
-		removedElementSnapshot?: DifferSnapshot
+		removedElementSnapshot?: DifferSnapshot,
+		action?: ChangeItemAction
 	): DiffItemInsert & DiffItemInternal {
 		return {
 			type: 'insert',
+			action,
 			position: Position._createAt( parent, offset ),
 			name: currentElementSnapshot.name,
 			attributes: new Map( currentElementSnapshot.attributes ),
@@ -1128,15 +1131,18 @@ export default class Differ {
 	 * @param parent The element in which change happened.
 	 * @param offset The offset at which change happened.
 	 * @param elementSnapshot The snapshot of the removed element a character.
+	 * @param action Indicates if insert is part of operation that consist multiple suboperations.
 	 * @returns The diff item.
 	 */
 	private _getRemoveDiff(
 		parent: Element | DocumentFragment,
 		offset: number,
-		elementSnapshot: DifferSnapshot
+		elementSnapshot: DifferSnapshot,
+		action?: ChangeItemAction
 	): DiffItemRemove & DiffItemInternal {
 		return {
 			type: 'remove',
+			action,
 			position: Position._createAt( parent, offset ),
 			name: elementSnapshot.name,
 			attributes: new Map( elementSnapshot.attributes ),
@@ -1248,8 +1254,11 @@ export default class Differ {
 	}
 }
 
+type ChangeItemAction = 'rename' | 'refresh';
+
 interface ChangeItem {
 	type: 'insert' | 'remove' | 'attribute';
+	action?: ChangeItemAction;
 	offset: number;
 	howMany: number;
 	count: number;
@@ -1332,8 +1341,8 @@ function _getChildrenSnapshot( children: Iterable<Node> ): Array<DifferSnapshot>
  * The result actions are: equal, remove, equal, insert, insert, attribute, equal, equal.
  */
 
-function _generateActionsFromChanges( oldChildrenLength: number, changes: Array<ChangeItem> ): Array<string> {
-	const actions: Array<string> = [];
+function _generateActionsFromChanges( oldChildrenLength: number, changes: Array<ChangeItem> ) {
+	const actions: Array<readonly [ChangeItemAction | undefined, string]> = [];
 
 	let offset = 0;
 	let oldChildrenHandled = 0;
@@ -1343,7 +1352,7 @@ function _generateActionsFromChanges( oldChildrenLength: number, changes: Array<
 		// First, fill "holes" between changes with "equal" actions.
 		if ( change.offset > offset ) {
 			for ( let i = 0; i < change.offset - offset; i++ ) {
-				actions.push( 'e' );
+				actions.push( [ change.action, 'e' ] );
 			}
 
 			oldChildrenHandled += change.offset - offset;
@@ -1352,14 +1361,14 @@ function _generateActionsFromChanges( oldChildrenLength: number, changes: Array<
 		// Then, fill up actions accordingly to change type.
 		if ( change.type == 'insert' ) {
 			for ( let i = 0; i < change.howMany; i++ ) {
-				actions.push( 'i' );
+				actions.push( [ change.action, 'i' ] );
 			}
 
 			// The last handled offset is after inserted range.
 			offset = change.offset + change.howMany;
 		} else if ( change.type == 'remove' ) {
 			for ( let i = 0; i < change.howMany; i++ ) {
-				actions.push( 'r' );
+				actions.push( [ change.action, 'r' ] );
 			}
 
 			// The last handled offset is at the position where the nodes were removed.
@@ -1367,7 +1376,7 @@ function _generateActionsFromChanges( oldChildrenLength: number, changes: Array<
 			// We removed `howMany` old nodes, update `oldChildrenHandled`.
 			oldChildrenHandled += change.howMany;
 		} else {
-			actions.push( ...'a'.repeat( change.howMany ).split( '' ) );
+			actions.push( ...'a'.repeat( change.howMany ).split( '' ).map( item => [ change.action, item ] as const ) );
 
 			// The last handled offset is at the position after the changed range.
 			offset = change.offset + change.howMany;
@@ -1380,7 +1389,7 @@ function _generateActionsFromChanges( oldChildrenLength: number, changes: Array<
 	// has not been changed / removed at the end of their parent.
 	if ( oldChildrenHandled < oldChildrenLength ) {
 		for ( let i = 0; i < oldChildrenLength - oldChildrenHandled - offset; i++ ) {
-			actions.push( 'e' );
+			actions.push( [ undefined, 'e' ] );
 		}
 	}
 
@@ -1425,6 +1434,11 @@ export interface DiffItemInsert {
 	type: 'insert';
 
 	/**
+	 * Indicates if insert is part of operation that consist multiple suboperations.
+	 */
+	action?: ChangeItemAction;
+
+	/**
 	 * The name of the inserted elements or `'$text'` for a text node.
 	 */
 	name: string;
@@ -1467,6 +1481,11 @@ export interface DiffItemRemove {
 	 * The type of diff item.
 	 */
 	type: 'remove';
+
+	/**
+	 * Indicates if insert is part of operation that consist multiple suboperations.
+	 */
+	action?: ChangeItemAction;
 
 	/**
 	 * The name of the removed element or `'$text'` for a text node.

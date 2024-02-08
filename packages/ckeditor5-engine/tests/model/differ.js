@@ -165,6 +165,7 @@ describe( 'Differ', () => {
 				expectChanges( [
 					{
 						type: 'remove',
+						action: 'rename',
 						name: 'paragraph',
 						length: 1,
 						position: new Position( root, [ 0 ] ),
@@ -172,6 +173,7 @@ describe( 'Differ', () => {
 					},
 					{
 						type: 'insert',
+						action: 'rename',
 						name: 'listItem',
 						length: 1,
 						position: new Position( root, [ 0 ] ),
@@ -658,6 +660,7 @@ describe( 'Differ', () => {
 				expectChanges( [
 					{
 						type: 'remove',
+						action: 'rename',
 						name: 'paragraph',
 						length: 1,
 						position: new Position( root, [ 0 ] ),
@@ -665,6 +668,7 @@ describe( 'Differ', () => {
 					},
 					{
 						type: 'insert',
+						action: 'rename',
 						name: 'listItem',
 						length: 1,
 						position: new Position( root, [ 0 ] ),
@@ -868,8 +872,8 @@ describe( 'Differ', () => {
 				rename( root.getChild( 1 ), 'listItem' );
 
 				expectChanges( [
-					{ type: 'remove', name: 'paragraph', length: 1, position: new Position( root, [ 1 ] ) },
-					{ type: 'insert', name: 'listItem', length: 1, position: new Position( root, [ 1 ] ) }
+					{ type: 'remove', action: 'rename', name: 'paragraph', length: 1, position: new Position( root, [ 1 ] ) },
+					{ type: 'insert', action: 'rename', name: 'listItem', length: 1, position: new Position( root, [ 1 ] ) }
 				] );
 
 				const markersToRemove = differ.getMarkersToRemove().map( entry => entry.name );
@@ -2795,8 +2799,8 @@ describe( 'Differ', () => {
 			differ._refreshItem( p );
 
 			expectChanges( [
-				{ type: 'remove', name: 'paragraph', length: 1, position: model.createPositionBefore( p ) },
-				{ type: 'insert', name: 'paragraph', length: 1, position: model.createPositionBefore( p ) }
+				{ type: 'remove', action: 'refresh', name: 'paragraph', length: 1, position: model.createPositionBefore( p ) },
+				{ type: 'insert', action: 'refresh', name: 'paragraph', length: 1, position: model.createPositionBefore( p ) }
 			], true );
 
 			const refreshedItems = Array.from( differ.getRefreshedItems() );
@@ -2811,8 +2815,8 @@ describe( 'Differ', () => {
 			differ._refreshItem( textProxy );
 
 			expectChanges( [
-				{ type: 'remove', name: '$text', length: 3, position: model.createPositionAt( p, 0 ) },
-				{ type: 'insert', name: '$text', length: 3, position: model.createPositionAt( p, 0 ) }
+				{ type: 'remove', action: 'refresh', name: '$text', length: 3, position: model.createPositionAt( p, 0 ) },
+				{ type: 'insert', action: 'refresh', name: '$text', length: 3, position: model.createPositionAt( p, 0 ) }
 			], true );
 
 			const refreshedItems = Array.from( differ.getRefreshedItems() );
