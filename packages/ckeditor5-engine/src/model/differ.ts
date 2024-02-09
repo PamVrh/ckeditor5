@@ -53,7 +53,7 @@ export default class Differ {
 	 * the first change was applied on that element. Snapshot items are objects with two properties: `name`,
 	 * containing the element name (or `'$text'` for a text node) and `attributes` which is a map of the node's attributes.
 	 */
-	private readonly _elementSnapshots: Map<Element | DocumentFragment, Array<DifferSnapshot>> = new Map();
+	private readonly _elementChildrenSnapshots: Map<Element | DocumentFragment, Array<DifferSnapshot>> = new Map();
 
 	/**
 	 * A map that stores all changed markers.
@@ -462,7 +462,7 @@ export default class Differ {
 			} );
 
 			// Get children and parent of this element before any change was applied on it.
-			const snapshotChildren = this._elementSnapshots.get( element )!;
+			const snapshotChildren = this._elementChildrenSnapshots.get( element )!;
 			// Get snapshot of current element's children.
 			const elementChildren = _getChildrenSnapshot( element.getChildren() );
 
@@ -634,7 +634,7 @@ export default class Differ {
 	 */
 	public reset(): void {
 		this._changesInElement.clear();
-		this._elementSnapshots.clear();
+		this._elementChildrenSnapshots.clear();
 		this._changedMarkers.clear();
 		this._changedRoots.clear();
 		this._refreshedItems = new Set();
@@ -862,8 +862,8 @@ export default class Differ {
 	 * Saves a children snapshot for a given element.
 	 */
 	private _makeSnapshot( element: Element | DocumentFragment ): void {
-		if ( !this._elementSnapshots.has( element ) ) {
-			this._elementSnapshots.set( element, _getChildrenSnapshot( element.getChildren() ) );
+		if ( !this._elementChildrenSnapshots.has( element ) ) {
+			this._elementChildrenSnapshots.set( element, _getChildrenSnapshot( element.getChildren() ) );
 		}
 	}
 
@@ -1110,7 +1110,6 @@ export default class Differ {
 	): DiffItemInsert & DiffItemInternal {
 		return {
 			type: 'insert',
-			action,
 			position: Position._createAt( parent, offset ),
 			name: currentElementSnapshot.name,
 			attributes: new Map( currentElementSnapshot.attributes ),
@@ -1118,6 +1117,7 @@ export default class Differ {
 			changeCount: this._changeCount++,
 			// If `removedElementSnapshot` was passed, add `before` property.
 			...removedElementSnapshot && {
+				action,
 				before: {
 					name: removedElementSnapshot.name,
 					attributes: new Map( removedElementSnapshot.attributes )
@@ -1246,7 +1246,7 @@ export default class Differ {
 
 		for ( const item of range.getItems( { shallow: true } ) ) {
 			if ( item.is( 'element' ) ) {
-				this._elementSnapshots.delete( item );
+				this._elementChildrenSnapshots.delete( item );
 				this._changesInElement.delete( item );
 
 				this._removeAllNestedChanges( item, 0, item.maxOffset );
