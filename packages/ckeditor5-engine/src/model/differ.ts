@@ -1497,6 +1497,11 @@ export interface DiffItemInsert {
 	 */
 	length: number;
 
+	/**
+	 * For example, when <paragraph textAlign="right"> is switched to <codeBlock language="plaintext">,
+	 * before property will keep the state before all changes, that is, name will be 'paragraph' and
+	 * attributes will have one entry 'textAlign' -> 'right'
+	 */
 	before?: {
 
 		/**
