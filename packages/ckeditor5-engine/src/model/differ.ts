@@ -1113,15 +1113,15 @@ export default class Differ {
 	 * @param parent The element in which the change happened.
 	 * @param offset The offset at which change happened.
 	 * @param currentElementSnapshot Map of attributes of the inserted element
-	 * @param removedElementSnapshot Map of the attributes of the removed elements before all changes
-	 * @param action Indicates if insert is part of operation that consist multiple suboperations.
+	 * @param beforeElementSnapshot Map of the attributes of the removed elements before all changes
+	 * @param action Further specifies what kind of action led to generating this change.
 	 * @returns The diff item.
 	 */
 	private _getInsertDiff(
 		parent: Element | DocumentFragment,
 		offset: number,
 		currentElementSnapshot: DifferSnapshot,
-		removedElementSnapshot?: DifferSnapshot,
+		beforeElementSnapshot?: DifferSnapshot,
 		action?: ChangeItemAction
 	): DiffItemInsert & DiffItemInternal {
 		return {
@@ -1131,12 +1131,12 @@ export default class Differ {
 			attributes: new Map( currentElementSnapshot.attributes ),
 			length: 1,
 			changeCount: this._changeCount++,
-			// If `removedElementSnapshot` was passed, add `before` property.
-			...removedElementSnapshot && {
+			// If `beforeElementSnapshot` was passed, add `before` property.
+			...beforeElementSnapshot && {
 				action,
 				before: {
-					name: removedElementSnapshot.name,
-					attributes: new Map( removedElementSnapshot.attributes )
+					name: beforeElementSnapshot.name,
+					attributes: new Map( beforeElementSnapshot.attributes )
 				}
 			}
 		};
@@ -1148,7 +1148,7 @@ export default class Differ {
 	 * @param parent The element in which change happened.
 	 * @param offset The offset at which change happened.
 	 * @param elementSnapshot The snapshot of the removed element a character.
-	 * @param action Indicates if insert is part of operation that consist multiple suboperations.
+	 * @param action Further specifies what kind of action led to generating this change.
 	 * @returns The diff item.
 	 */
 	private _getRemoveDiff(
