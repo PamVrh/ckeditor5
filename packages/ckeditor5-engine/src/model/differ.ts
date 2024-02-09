@@ -1116,6 +1116,7 @@ export default class Differ {
 			attributes: new Map( currentElementSnapshot.attributes ),
 			length: 1,
 			changeCount: this._changeCount++,
+			// If `removedElementSnapshot` was passed, add `before` property.
 			...removedElementSnapshot && {
 				before: {
 					name: removedElementSnapshot.name,
