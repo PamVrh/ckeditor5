@@ -473,20 +473,20 @@ export default class Differ {
 			let j = 0; // Iterator in `snapshotChildren` array -- iterates through old children of element.
 
 			// Process every action.
-			for ( const [ action, name ] of actions ) {
-				if ( name === 'i' ) {
+			for ( const [ action, type ] of actions ) {
+				if ( type === 'i' ) {
 					// Generate diff item for this element and insert it into the diff set.
 					const maybeChildElementSnapshot = snapshotChildren.find( snapshot => snapshot.node === elementChildren[ i ].node );
 
 					diffSet.push( this._getInsertDiff( element, i, elementChildren[ i ], maybeChildElementSnapshot, action ) );
 
 					i++;
-				} else if ( name === 'r' ) {
+				} else if ( type === 'r' ) {
 					// Generate diff item for this element and insert it into the diff set.
 					diffSet.push( this._getRemoveDiff( element, i, snapshotChildren[ j ], action ) );
 
 					j++;
-				} else if ( name === 'a' ) {
+				} else if ( type === 'a' ) {
 					// Take attributes from saved and current children.
 					const elementAttributes = elementChildren[ i ].attributes;
 					const snapshotAttributes = snapshotChildren[ j ].attributes;
