@@ -1271,6 +1271,10 @@ export default class Differ {
 	}
 }
 
+/**
+ * It's subtype of operation, it further details what exactly happened.
+ * For example it indicates if operation was triggered by writer.rename() function call.
+ */
 type ChangeItemAction = 'rename' | 'refresh';
 
 interface ChangeItem {
