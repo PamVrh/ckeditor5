@@ -49,6 +49,13 @@ export default class Differ {
 	private readonly _changesInElement: Map<Element | DocumentFragment, Array<ChangeItem>> = new Map();
 
 	/**
+	 * A map that stores all elements snapshots. A snapshot is representing state of a given element before
+	 * the first change was applied on that element. Snapshot items are objects with two properties: `name`,
+	 * containing the element name (or `'$text'` for a text node) and `attributes` which is a map of the node's attributes.
+	 */
+	private readonly _elementSnapshots: Map<Node | Element | DocumentFragment, Array<DifferSnapshot>> = new Map();
+
+	/**
 	 * A map that stores "element's children snapshots". A snapshot is representing children of a given element before
 	 * the first change was applied on that element. Snapshot items are objects with two properties: `name`,
 	 * containing the element name (or `'$text'` for a text node) and `attributes` which is a map of the node's attributes.
@@ -476,7 +483,7 @@ export default class Differ {
 			for ( const [ action, type ] of actions ) {
 				if ( type === 'i' ) {
 					// Generate diff item for this element and insert it into the diff set.
-					const maybeChildElementSnapshot = snapshotChildren.find( snapshot => snapshot.node === elementChildren[ i ].node );
+					const [ maybeChildElementSnapshot ] = this._elementSnapshots.get( elementChildren[ i ].node ) || [];
 
 					diffSet.push( this._getInsertDiff( element, i, elementChildren[ i ], maybeChildElementSnapshot, action ) );
 
@@ -635,6 +642,7 @@ export default class Differ {
 	public reset(): void {
 		this._changesInElement.clear();
 		this._elementChildrenSnapshots.clear();
+		this._elementSnapshots.clear();
 		this._changedMarkers.clear();
 		this._changedRoots.clear();
 		this._refreshedItems = new Set();
@@ -864,6 +872,14 @@ export default class Differ {
 	private _makeSnapshot( element: Element | DocumentFragment ): void {
 		if ( !this._elementChildrenSnapshots.has( element ) ) {
 			this._elementChildrenSnapshots.set( element, _getChildrenSnapshot( element.getChildren() ) );
+		}
+
+		if ( !this._elementSnapshots.has( element ) ) {
+			this._elementSnapshots.set( element, _getSingleNodeSnapshot( element ) );
+
+			for ( const [ child, snapshot ] of _getChildrenSnapshotsMap( element.getChildren() ) ) {
+				this._elementSnapshots.set( child, snapshot );
+			}
 		}
 	}
 
@@ -1267,31 +1283,53 @@ interface ChangeItem {
 }
 
 /**
+ * Returns array of snapshots for specified node with the exception that text nodes are split to one or more
+ * objects, each representing one character and attributes set on that character.
+ */
+function _getSingleNodeSnapshot( node: Node | Element | DocumentFragment ): Array<DifferSnapshot> {
+	const snapshot: Array<DifferSnapshot> = [];
+
+	if ( node.is( '$text' ) ) {
+		for ( let i = 0; i < node.data.length; i++ ) {
+			snapshot.push( {
+				node,
+				name: '$text',
+				attributes: new Map( node.getAttributes() )
+			} );
+		}
+	} else if ( 'getAttributes' in node ) {
+		snapshot.push( {
+			node,
+			name: ( node as Element ).name,
+			attributes: new Map( node.getAttributes() )
+		} );
+	}
+
+	return snapshot;
+}
+
+/**
  * Returns an array that is a copy of passed child list with the exception that text nodes are split to one or more
  * objects, each representing one character and attributes set on that character.
  */
 function _getChildrenSnapshot( children: Iterable<Node> ): Array<DifferSnapshot> {
-	const snapshot: Array<DifferSnapshot> = [];
+	return Array.from( children ).flatMap( _getSingleNodeSnapshot );
+}
 
-	for ( const child of children ) {
-		if ( child.is( '$text' ) ) {
-			for ( let i = 0; i < child.data.length; i++ ) {
-				snapshot.push( {
-					node: child,
-					name: '$text',
-					attributes: new Map( child.getAttributes() )
-				} );
-			}
-		} else {
-			snapshot.push( {
-				node: child,
-				name: ( child as Element ).name,
-				attributes: new Map( child.getAttributes() )
-			} );
-		}
-	}
-
-	return snapshot;
+/**
+ * Returns a map that returns an array of snapshots of individual children as values.
+ * It uses the elements passed in the argument as keys.
+ */
+function _getChildrenSnapshotsMap( children: Iterable<Node> ) {
+	return Array
+		.from( children )
+		.reduce<Map<Node, Array<DifferSnapshot>>>(
+			( acc, child ) => {
+				acc.set( child, _getSingleNodeSnapshot( child ) );
+				return acc;
+			},
+			new Map()
+		);
 }
 
 /**
