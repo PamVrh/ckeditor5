@@ -1500,12 +1500,12 @@ export interface DiffItemInsert {
 	before?: {
 
 		/**
-		 * The name of the removed element before all changes.
+		 * The name of the inserted element before all changes.
 		 */
 		name: string;
 
 		/**
-		 * Map of the attributes of the removed elements before all changes.
+		 * Map of the attributes of the inserted element before all changes.
 		 */
 		attributes: Map<string, unknown>;
 	};
