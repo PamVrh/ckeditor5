@@ -1322,7 +1322,7 @@ function canTakeSnapshotOfParentNode( node: Node | Element | DocumentFragment ):
 function _getChildrenSnapshot( children: Iterable<Node> ): Array<DifferSnapshot> {
 	return Array.from( children ).flatMap( child => {
 		if ( child.is( '$text' ) ) {
-			return [ ...child.data ].map( () => _getSingleNodeSnapshot( child ) );
+			return Array.from( Array( child.data.length ) ).map( () => _getSingleNodeSnapshot( child ) );
 		}
 
 		return [ _getSingleNodeSnapshot( child ) ];
