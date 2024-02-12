@@ -12,11 +12,11 @@ import Range from './range.js';
 
 import type { default as MarkerCollection, MarkerData } from './markercollection.js';
 import type AttributeOperation from './operation/attributeoperation.js';
-import type DocumentFragment from './documentfragment.js';
 import type Element from './element.js';
 import type InsertOperation from './operation/insertoperation.js';
 import type Item from './item.js';
 import type MergeOperation from './operation/mergeoperation.js';
+import type DocumentFragment from './documentfragment.js';
 import type MoveOperation from './operation/moveoperation.js';
 import type Node from './node.js';
 import type RootElement from './rootelement.js';
@@ -53,7 +53,7 @@ export default class Differ {
 	 * the first change was applied on that element. Snapshot items are objects with two properties: `name`,
 	 * containing the element name (or `'$text'` for a text node) and `attributes` which is a map of the node's attributes.
 	 */
-	private readonly _elementSnapshots: Map<Node | Element | DocumentFragment, Array<DifferSnapshot>> = new Map();
+	private readonly _elementSnapshots: Map<Node | Element | DocumentFragment, DifferSnapshot> = new Map();
 
 	/**
 	 * A map that stores "element's children snapshots". A snapshot is representing children of a given element before
@@ -483,7 +483,7 @@ export default class Differ {
 			for ( const [ action, type ] of actions ) {
 				if ( type === 'i' ) {
 					// Generate diff item for this element and insert it into the diff set.
-					const [ maybeChildElementSnapshot ] = this._elementSnapshots.get( elementChildren[ i ].node ) || [];
+					const maybeChildElementSnapshot = this._elementSnapshots.get( elementChildren[ i ].node );
 
 					diffSet.push( this._getInsertDiff( element, i, elementChildren[ i ], maybeChildElementSnapshot, action ) );
 
@@ -875,7 +875,9 @@ export default class Differ {
 		}
 
 		if ( !this._elementSnapshots.has( element ) ) {
-			this._elementSnapshots.set( element, _getSingleNodeSnapshot( element ) );
+			if ( canTakeSnapshotOfParentNode( element ) ) {
+				this._elementSnapshots.set( element, _getSingleNodeSnapshot( element ) );
+			}
 
 			for ( const [ child, snapshot ] of _getChildrenSnapshotsMap( element.getChildren() ) ) {
 				this._elementSnapshots.set( child, snapshot );
@@ -1287,29 +1289,30 @@ interface ChangeItem {
 }
 
 /**
- * Returns array of snapshots for specified node with the exception that text nodes are split to one or more
- * objects, each representing one character and attributes set on that character.
+ * Returns a snapshot for the specified child node, with the exception that
+ * text nodes have the name `$text` in the snapshot.
  */
-function _getSingleNodeSnapshot( node: Node | Element | DocumentFragment ): Array<DifferSnapshot> {
-	const snapshot: Array<DifferSnapshot> = [];
-
+function _getSingleNodeSnapshot( node: Node | Element ): DifferSnapshot {
 	if ( node.is( '$text' ) ) {
-		for ( let i = 0; i < node.data.length; i++ ) {
-			snapshot.push( {
-				node,
-				name: '$text',
-				attributes: new Map( node.getAttributes() )
-			} );
-		}
-	} else if ( 'getAttributes' in node ) {
-		snapshot.push( {
+		return {
 			node,
-			name: ( node as Element ).name,
+			name: '$text',
 			attributes: new Map( node.getAttributes() )
-		} );
+		};
 	}
 
-	return snapshot;
+	return	{
+		node,
+		name: ( node as Element ).name,
+		attributes: new Map( node.getAttributes() )
+	};
+}
+
+/**
+ * Returns true if the parent node has all the fields required to take a snapshot.
+ */
+function canTakeSnapshotOfParentNode( node: Node | Element | DocumentFragment ): node is Node | Element {
+	return !!node && 'getAttributes' in node;
 }
 
 /**
@@ -1317,7 +1320,13 @@ function _getSingleNodeSnapshot( node: Node | Element | DocumentFragment ): Arra
  * objects, each representing one character and attributes set on that character.
  */
 function _getChildrenSnapshot( children: Iterable<Node> ): Array<DifferSnapshot> {
-	return Array.from( children ).flatMap( _getSingleNodeSnapshot );
+	return Array.from( children ).flatMap( child => {
+		if ( child.is( '$text' ) ) {
+			return [ ...child.data ].map( () => _getSingleNodeSnapshot( child ) );
+		}
+
+		return [ _getSingleNodeSnapshot( child ) ];
+	} );
 }
 
 /**
@@ -1327,7 +1336,7 @@ function _getChildrenSnapshot( children: Iterable<Node> ): Array<DifferSnapshot>
 function _getChildrenSnapshotsMap( children: Iterable<Node> ) {
 	return Array
 		.from( children )
-		.reduce<Map<Node, Array<DifferSnapshot>>>(
+		.reduce<Map<Node, DifferSnapshot>>(
 			( acc, child ) => {
 				acc.set( child, _getSingleNodeSnapshot( child ) );
 				return acc;
