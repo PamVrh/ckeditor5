@@ -473,10 +473,10 @@ export default class Differ {
 			} );
 
 			// Handle orphaned action items. During transformation some of changes that are part of
-			// actions (for example `rename` action) are being removed from tree. The prime example
-			// might be rename and remove of the same element. It will be reduced to single `remove` operation.
+			// actions (for example `rename` action) are being removed from list. The prime example
+			// might be renaming and removing of the same element. It will be reduced to single `remove` operation.
 			// The problem is that the information about `rename` action is still present in `remove` change.
-			// This function removes it.
+			// This statement removes it.
 			const actionsWithChanges = new Map<ChangeItemAction, Array<ChangeItem>>( [] );
 
 			for ( const change of changes ) {
