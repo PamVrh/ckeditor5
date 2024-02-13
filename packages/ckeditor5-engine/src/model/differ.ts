@@ -870,18 +870,20 @@ export default class Differ {
 	 * Saves a children snapshot for a given element.
 	 */
 	private _makeSnapshot( element: Element | DocumentFragment ): void {
-		if ( !this._elementChildrenSnapshots.has( element ) ) {
-			this._elementChildrenSnapshots.set( element, _getChildrenSnapshot( element.getChildren() ) );
+		if ( this._elementChildrenSnapshots.has( element ) ) {
+			return;
 		}
 
-		if ( !this._elementSnapshots.has( element ) ) {
-			if ( canTakeSnapshotOfParentNode( element ) ) {
-				this._elementSnapshots.set( element, _getSingleNodeSnapshot( element ) );
-			}
+		const childrenSnapshots = _getChildrenSnapshot( element.getChildren() );
 
-			for ( const [ child, snapshot ] of _getChildrenSnapshotsMap( element.getChildren() ) ) {
-				this._elementSnapshots.set( child, snapshot );
-			}
+		this._elementChildrenSnapshots.set( element, childrenSnapshots );
+
+		for ( const snapshot of childrenSnapshots ) {
+			this._elementSnapshots.set( snapshot.node, snapshot );
+		}
+
+		if ( canTakeSnapshotOfParentNode( element ) ) {
+			this._elementSnapshots.set( element, _getSingleNodeSnapshot( element ) );
 		}
 	}
 
@@ -1335,22 +1337,6 @@ function _getChildrenSnapshot( children: Iterable<Node> ): Array<DifferSnapshot>
 	}
 
 	return snapshots;
-}
-
-/**
- * Returns a map that returns an array of snapshots of individual children as values.
- * It uses the elements passed in the argument as keys.
- */
-function _getChildrenSnapshotsMap( children: Iterable<Node> ) {
-	return Array
-		.from( children )
-		.reduce<Map<Node, DifferSnapshot>>(
-			( acc, child ) => {
-				acc.set( child, _getSingleNodeSnapshot( child ) );
-				return acc;
-			},
-			new Map()
-		);
 }
 
 /**
