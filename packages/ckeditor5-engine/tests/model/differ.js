@@ -186,6 +186,26 @@ describe( 'Differ', () => {
 			} );
 		} );
 
+		it( 'action is not present in node if it was regular insert change', () => {
+			const text = new Text( 'xyz', { } );
+			const position = new Position( root, [ 0, 3 ] );
+
+			model.change( () => {
+				insert( text, position );
+				expectChanges( [
+					{
+						type: 'insert',
+						action: undefined,
+						before: undefined,
+						name: '$text',
+						length: 3,
+						position: new Position( root, [ 0, 3 ] ),
+						attributes: new Map( [] )
+					}
+				] );
+			} );
+		} );
+
 		it( 'node in a element with changed attribute', () => {
 			const text = new Text( 'xyz', { bold: true } );
 			const position = new Position( root, [ 0, 3 ] );
@@ -679,6 +699,25 @@ describe( 'Differ', () => {
 					}
 				] );
 			} );
+		} );
+
+		it( 'action is not present if there was rename before remove', () => {
+			const position = new Position( root, [ 0 ] );
+			const element = root.getChild( 0 );
+
+			rename( element, 'listItem' );
+			remove( position, 1 );
+
+			expectChanges( [
+				{
+					type: 'remove',
+					action: undefined,
+					name: 'paragraph',
+					position: new Position( root, [ 0 ] ),
+					attributes: new Map( [] ),
+					length: 1
+				}
+			] );
 		} );
 	} );
 
