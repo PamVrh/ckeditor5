@@ -1267,7 +1267,6 @@ export default class Differ {
 		for ( const item of range.getItems( { shallow: true } ) ) {
 			if ( item.is( 'element' ) ) {
 				this._elementChildrenSnapshots.delete( item );
-				this._elementSnapshots.delete( item );
 				this._changesInElement.delete( item );
 
 				this._removeAllNestedChanges( item, 0, item.maxOffset );
