@@ -1273,9 +1273,11 @@ export default class Differ {
 	}
 }
 
-/**
- * It's subtype of operation, it further details what exactly happened.
- * For example it indicates if operation was triggered by writer.rename() function call.
+/*
+ * Further specifies what kind of action led to generating a change:
+ *
+ * * `'rename'` if element got renamed (e.g. `writer.rename()`),
+ * * `'refresh'` if element got refreshed (e.g. `model.editing.reconvertItem()`).
  */
 type ChangeItemAction = 'rename' | 'refresh';
 
