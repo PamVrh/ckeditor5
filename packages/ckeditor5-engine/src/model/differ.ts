@@ -468,7 +468,7 @@ export default class Differ {
 				return a.offset < b.offset ? -1 : 1;
 			} );
 
-			// Get children and parent of this element before any change was applied on it.
+			// Get children of this element before any change was applied on it.
 			const snapshotChildren = this._elementChildrenSnapshots.get( element )!;
 			// Get snapshot of current element's children.
 			const elementChildren = _getChildrenSnapshot( element.getChildren() );
