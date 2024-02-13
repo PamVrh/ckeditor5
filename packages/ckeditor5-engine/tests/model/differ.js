@@ -165,7 +165,7 @@ describe( 'Differ', () => {
 				expectChanges( [
 					{
 						type: 'remove',
-						action: 'rename',
+						action: { name: 'rename' },
 						name: 'paragraph',
 						length: 1,
 						position: new Position( root, [ 0 ] ),
@@ -173,7 +173,7 @@ describe( 'Differ', () => {
 					},
 					{
 						type: 'insert',
-						action: 'rename',
+						action: { name: 'rename' },
 						name: 'listItem',
 						length: 1,
 						position: new Position( root, [ 0 ] ),
@@ -680,7 +680,7 @@ describe( 'Differ', () => {
 				expectChanges( [
 					{
 						type: 'remove',
-						action: 'rename',
+						action: { name: 'rename' },
 						name: 'paragraph',
 						length: 1,
 						position: new Position( root, [ 0 ] ),
@@ -688,7 +688,7 @@ describe( 'Differ', () => {
 					},
 					{
 						type: 'insert',
-						action: 'rename',
+						action: { name: 'rename' },
 						name: 'listItem',
 						length: 1,
 						position: new Position( root, [ 0 ] ),
@@ -911,8 +911,8 @@ describe( 'Differ', () => {
 				rename( root.getChild( 1 ), 'listItem' );
 
 				expectChanges( [
-					{ type: 'remove', action: 'rename', name: 'paragraph', length: 1, position: new Position( root, [ 1 ] ) },
-					{ type: 'insert', action: 'rename', name: 'listItem', length: 1, position: new Position( root, [ 1 ] ) }
+					{ type: 'remove', action: { name: 'rename' }, name: 'paragraph', length: 1, position: new Position( root, [ 1 ] ) },
+					{ type: 'insert', action: { name: 'rename' }, name: 'listItem', length: 1, position: new Position( root, [ 1 ] ) }
 				] );
 
 				const markersToRemove = differ.getMarkersToRemove().map( entry => entry.name );
@@ -2838,8 +2838,8 @@ describe( 'Differ', () => {
 			differ._refreshItem( p );
 
 			expectChanges( [
-				{ type: 'remove', action: 'refresh', name: 'paragraph', length: 1, position: model.createPositionBefore( p ) },
-				{ type: 'insert', action: 'refresh', name: 'paragraph', length: 1, position: model.createPositionBefore( p ) }
+				{ type: 'remove', action: { name: 'refresh' }, name: 'paragraph', length: 1, position: model.createPositionBefore( p ) },
+				{ type: 'insert', action: { name: 'refresh' }, name: 'paragraph', length: 1, position: model.createPositionBefore( p ) }
 			], true );
 
 			const refreshedItems = Array.from( differ.getRefreshedItems() );
@@ -2854,8 +2854,8 @@ describe( 'Differ', () => {
 			differ._refreshItem( textProxy );
 
 			expectChanges( [
-				{ type: 'remove', action: 'refresh', name: '$text', length: 3, position: model.createPositionAt( p, 0 ) },
-				{ type: 'insert', action: 'refresh', name: '$text', length: 3, position: model.createPositionAt( p, 0 ) }
+				{ type: 'remove', action: { name: 'refresh' }, name: '$text', length: 3, position: model.createPositionAt( p, 0 ) },
+				{ type: 'insert', action: { name: 'refresh' }, name: '$text', length: 3, position: model.createPositionAt( p, 0 ) }
 			], true );
 
 			const refreshedItems = Array.from( differ.getRefreshedItems() );
@@ -3093,7 +3093,7 @@ describe( 'Differ', () => {
 				if ( Object.prototype.hasOwnProperty.call( expected[ i ], key ) ) {
 					if ( key == 'position' || key == 'range' ) {
 						expect( changes[ i ][ key ].isEqual( expected[ i ][ key ] ), `item ${ i }, key "${ key }"` ).to.be.true;
-					} else if ( key == 'attributes' || key == 'before' ) {
+					} else if ( key == 'attributes' || key == 'before' || key == 'action' ) {
 						expect( changes[ i ][ key ], `item ${ i }, key "${ key }"` ).to.deep.equal( expected[ i ][ key ] );
 					} else {
 						expect( changes[ i ][ key ], `item ${ i }, key "${ key }"` ).to.equal( expected[ i ][ key ] );

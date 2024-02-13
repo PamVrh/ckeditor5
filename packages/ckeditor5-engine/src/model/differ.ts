@@ -201,8 +201,12 @@ export default class Differ {
 					return;
 				}
 
-				this._markRemove( operation.position.parent, operation.position.offset, 1, 'rename' );
-				this._markInsert( operation.position.parent, operation.position.offset, 1, 'rename' );
+				const action: ChangeItemAction = {
+					name: 'rename'
+				};
+
+				this._markRemove( operation.position.parent, operation.position.offset, 1, action );
+				this._markInsert( operation.position.parent, operation.position.offset, 1, action );
 
 				const range = Range._createFromPositionAndShift( operation.position, 1 );
 
@@ -468,6 +472,32 @@ export default class Differ {
 				return a.offset < b.offset ? -1 : 1;
 			} );
 
+			// Handle orphaned action items. During transformation some of changes that are part of
+			// actions (for example `rename` action) are being removed from tree. The prime example
+			// might be rename and remove of the same element. It will be reduced to single `remove` operation.
+			// The problem is that the information about `rename` action is still present in `remove` change.
+			// This function removes it.
+			const actionsWithChanges = new Map<ChangeItemAction, Array<ChangeItem>>( [] );
+
+			for ( const change of changes ) {
+				if ( change.action ) {
+					const group = actionsWithChanges.get( change.action ) ?? [];
+
+					group.push( change );
+					actionsWithChanges.set( change.action, group );
+				}
+			}
+
+			for ( const [ , actionChanges ] of actionsWithChanges.entries() ) {
+				if ( actionChanges.length === 2 ) {
+					continue;
+				}
+
+				for ( const change of actionChanges ) {
+					delete change.action;
+				}
+			}
+
 			// Get children of this element before any change was applied on it.
 			const snapshotChildren = this._elementChildrenSnapshots.get( element )!;
 			// Get snapshot of current element's children.
@@ -727,8 +757,12 @@ export default class Differ {
 			return;
 		}
 
-		this._markRemove( item.parent!, item.startOffset!, item.offsetSize, 'refresh' );
-		this._markInsert( item.parent!, item.startOffset!, item.offsetSize, 'refresh' );
+		const action: ChangeItemAction = {
+			name: 'refresh'
+		};
+
+		this._markRemove( item.parent!, item.startOffset!, item.offsetSize, action );
+		this._markInsert( item.parent!, item.startOffset!, item.offsetSize, action );
 
 		this._refreshedItems.add( item );
 
@@ -1275,13 +1309,16 @@ export default class Differ {
 	}
 }
 
-/*
- * Further specifies what kind of action led to generating a change:
- *
- * * `'rename'` if element got renamed (e.g. `writer.rename()`),
- * * `'refresh'` if element got refreshed (e.g. `model.editing.reconvertItem()`).
- */
-type ChangeItemAction = 'rename' | 'refresh';
+type ChangeItemAction = {
+
+	/**
+	 * Further specifies what kind of action led to generating a change:
+	 *
+	 * `'rename'` if element got renamed (e.g. `writer.rename()`),
+	 * `'refresh'` if element got refreshed (e.g. `model.editing.reconvertItem()`).
+	 */
+	name: 'rename' | 'refresh';
+};
 
 interface ChangeItem {
 	type: 'insert' | 'remove' | 'attribute';
