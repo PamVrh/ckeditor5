@@ -1465,7 +1465,13 @@ export interface DiffItemInsert {
 	type: 'insert';
 
 	/**
-	 * Indicates if insert is part of operation that consist multiple suboperations.
+	 * Further specifies what kind of action led to generating this change.
+     *
+     * Not set if this was a regular insert change.
+     *
+     * Not set if the element was first inserted and then renamed or refreshed.
+     *
+     * Not set for text node changes.
 	 */
 	action?: ChangeItemAction;
 
@@ -1524,7 +1530,13 @@ export interface DiffItemRemove {
 	type: 'remove';
 
 	/**
-	 * Indicates if insert is part of operation that consist multiple suboperations.
+	 * Further specifies what kind of action led to generating this change.
+     *
+     * Not set if this was a regular insert change.
+     *
+     * Not set if the element was first inserted and then renamed or refreshed.
+     *
+     * Not set for text node changes.
 	 */
 	action?: ChangeItemAction;
 
