@@ -1297,17 +1297,9 @@ interface ChangeItem {
  * text nodes have the name `$text` in the snapshot.
  */
 function _getSingleNodeSnapshot( node: Node | Element ): DifferSnapshot {
-	if ( node.is( '$text' ) ) {
-		return {
-			node,
-			name: '$text',
-			attributes: new Map( node.getAttributes() )
-		};
-	}
-
 	return	{
 		node,
-		name: ( node as Element ).name,
+		name: node.is( '$text' ) ? '$text' : ( node as Element ).name,
 		attributes: new Map( node.getAttributes() )
 	};
 }
