@@ -1517,9 +1517,14 @@ export interface DiffItemInsert {
 	length: number;
 
 	/**
-	 * For example, when <paragraph textAlign="right"> is switched to <codeBlock language="plaintext">,
-	 * before property will keep the state before all changes, that is, name will be 'paragraph' and
-	 * attributes will have one entry 'textAlign' -> 'right'
+	 * Holds information about the element state before all changes happened.
+	 *
+	 * The property is available only if the insertion change was due to element rename or refresh.
+	 *
+	 * The property is not available for text nodes.
+	 *
+	 * For example, when `<paragraph textAlign="right">` is switched to `<codeBlock language="plaintext">`,
+	 * `before.name` will be equal to 'paragraph' and `before.attributes` will have one entry `'textAlign' -> 'right'`.
 	 */
 	before?: {
 
