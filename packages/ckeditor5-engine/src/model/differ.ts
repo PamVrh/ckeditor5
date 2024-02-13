@@ -1320,13 +1320,19 @@ function canTakeSnapshotOfParentNode( node: Node | Element | DocumentFragment ):
  * objects, each representing one character and attributes set on that character.
  */
 function _getChildrenSnapshot( children: Iterable<Node> ): Array<DifferSnapshot> {
-	return Array.from( children ).flatMap( child => {
-		if ( child.is( '$text' ) ) {
-			return Array.from( Array( child.data.length ) ).map( () => _getSingleNodeSnapshot( child ) );
-		}
+	const snapshots: Array<DifferSnapshot> = [];
 
-		return [ _getSingleNodeSnapshot( child ) ];
-	} );
+	for ( const child of children ) {
+		if ( child.is( '$text' ) ) {
+			for ( let i = 0; i < child.data.length; ++i ) {
+				snapshots.push( _getSingleNodeSnapshot( child ) );
+			}
+		} else {
+			snapshots.push( _getSingleNodeSnapshot( child ) );
+		}
+	}
+
+	return snapshots;
 }
 
 /**
