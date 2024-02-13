@@ -882,7 +882,7 @@ export default class Differ {
 			this._elementSnapshots.set( snapshot.node, snapshot );
 		}
 
-		if ( canTakeSnapshotOfParentNode( element ) ) {
+		if ( !element.is( 'documentFragment' ) ) {
 			this._elementSnapshots.set( element, _getSingleNodeSnapshot( element ) );
 		}
 	}
@@ -1302,13 +1302,6 @@ function _getSingleNodeSnapshot( node: Node | Element ): DifferSnapshot {
 		name: node.is( '$text' ) ? '$text' : ( node as Element ).name,
 		attributes: new Map( node.getAttributes() )
 	};
-}
-
-/**
- * Returns true if the parent node has all the fields required to take a snapshot.
- */
-function canTakeSnapshotOfParentNode( node: Node | Element | DocumentFragment ): node is Node | Element {
-	return !!node && 'getAttributes' in node;
 }
 
 /**
