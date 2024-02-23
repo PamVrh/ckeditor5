@@ -34,8 +34,8 @@ import normalizeClipboardHtml from './utils/normalizeclipboarddata.js';
 import viewToPlainText from './utils/viewtoplaintext.js';
 
 import {
-	afterCopySelectionMarkersFragment,
-	beforeCopySelectionMarkersFragment,
+	collectAndRemoveFakeMarkers,
+	insertAndCollectFakeMarkers,
 } from './utils/assignfragmentmarkers.js';
 
 // Input pipeline events overview:
@@ -176,10 +176,10 @@ export default class ClipboardPipeline extends Plugin {
 		method: 'copy' | 'cut' | 'dragstart'
 	): void {
 		this.editor.model.change( writer => {
-			const insertedFakeMarkersElements = beforeCopySelectionMarkersFragment( writer, selection );
+			const insertedFakeMarkersElements = insertAndCollectFakeMarkers( writer, selection );
 			const documentFragment = this.editor.model.getSelectedContent( selection );
 
-			afterCopySelectionMarkersFragment( writer, documentFragment, insertedFakeMarkersElements );
+			collectAndRemoveFakeMarkers( writer, documentFragment, insertedFakeMarkersElements );
 
 			this.fire<ClipboardOutputTransformationEvent>( 'outputTransformation', {
 				dataTransfer,

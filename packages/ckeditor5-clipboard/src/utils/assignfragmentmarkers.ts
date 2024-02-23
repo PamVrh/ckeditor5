@@ -125,17 +125,16 @@ function _removeFakeMarkersInsideFragment(
 		}, { } );
 }
 
-export function beforeCopySelectionMarkersFragment(
+export function insertAndCollectFakeMarkers(
 	writer: Writer,
 	selection: Selection | DocumentSelection = writer.model.document.selection
 ): Map<Marker, Array<Element>> {
 	const copyableMarkers = _getCopyableMarkersFromSelection( writer, selection );
-	const fakeMarkersElements = _insertFakeMarkersElements( writer, copyableMarkers );
 
-	return fakeMarkersElements;
+	return _insertFakeMarkersElements( writer, copyableMarkers );
 }
 
-export function afterCopySelectionMarkersFragment(
+export function collectAndRemoveFakeMarkers(
 	writer: Writer,
 	documentFragment: DocumentFragment,
 	insertedFakeMarkersElements: Map<Marker, Array<Element>>

@@ -25,8 +25,8 @@ import type {
 } from 'ckeditor5/src/typing.js';
 
 import {
-	afterCopySelectionMarkersFragment,
-	beforeCopySelectionMarkersFragment
+	collectAndRemoveFakeMarkers,
+	insertAndCollectFakeMarkers
 } from '@ckeditor/ckeditor5-clipboard';
 
 import TableWalker from './tablewalker.js';
@@ -115,7 +115,7 @@ export default class TableSelection extends Plugin {
 
 		return this.editor.model.change( writer => {
 			const documentFragment = writer.createDocumentFragment();
-			const insertedFakeMarkersElements = beforeCopySelectionMarkersFragment( writer );
+			const insertedFakeMarkersElements = insertAndCollectFakeMarkers( writer );
 
 			const { first: firstColumn, last: lastColumn } = tableUtils.getColumnIndexes( selectedCells );
 			const { first: firstRow, last: lastRow } = tableUtils.getRowIndexes( selectedCells );
@@ -149,7 +149,7 @@ export default class TableSelection extends Plugin {
 			const table = cropTableToDimensions( sourceTable, cropDimensions, writer );
 			writer.insert( table, documentFragment, 0 );
 
-			afterCopySelectionMarkersFragment( writer, documentFragment, insertedFakeMarkersElements );
+			collectAndRemoveFakeMarkers( writer, documentFragment, insertedFakeMarkersElements );
 			return documentFragment;
 		} );
 	}
