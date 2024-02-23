@@ -77,6 +77,10 @@ function _constructElementsMarkersRanges( writer: Writer, markers: Record<string
 	return Object
 		.entries( markers )
 		.reduce<Record<string, Range>>( ( acc, [ markerName, [ startElement, endElement ] ] ) => {
+			if ( !startElement || !endElement ) {
+				return acc;
+			}
+
 			const endPosition = writer.createPositionAt( endElement, 'before' );
 			const endPath = [ ...endPosition.path ];
 

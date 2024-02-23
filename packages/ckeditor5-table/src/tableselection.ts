@@ -149,9 +149,7 @@ export default class TableSelection extends Plugin {
 			const table = cropTableToDimensions( sourceTable, cropDimensions, writer );
 			writer.insert( table, documentFragment, 0 );
 
-			// cleanup fake markers
 			afterCopySelectionMarkersFragment( writer, documentFragment, insertedFakeMarkersElements );
-
 			return documentFragment;
 		} );
 	}
