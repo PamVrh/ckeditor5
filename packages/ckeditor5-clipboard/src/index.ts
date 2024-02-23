@@ -28,6 +28,11 @@ export { default as PastePlainText } from './pasteplaintext.js';
 export { default as DragDropTarget } from './dragdroptarget.js';
 export { default as DragDropBlockToolbar } from './dragdropblocktoolbar.js';
 
+export {
+	afterCopySelectionMarkersFragment,
+	beforeCopySelectionMarkersFragment
+} from './utils/assignfragmentmarkers.js';
+
 export type {
 	ViewDocumentClipboardInputEvent,
 	ViewDocumentCopyEvent,

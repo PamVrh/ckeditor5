@@ -10,22 +10,24 @@
 import { Plugin } from 'ckeditor5/src/core.js';
 import { type EventInfo, first } from 'ckeditor5/src/utils.js';
 
-import {
-	Range,
-	type Element,
-	type DocumentFragment,
-	type Selection,
-	type DowncastWriter,
-	type ViewElement,
-	type ModelDeleteContentEvent,
-	type Writer,
-	type Marker
+import type {
+	Element,
+	DocumentFragment,
+	Selection,
+	DowncastWriter,
+	ViewElement,
+	ModelDeleteContentEvent,
 } from 'ckeditor5/src/engine.js';
 
 import type {
 	ViewDocumentInsertTextEvent,
 	InsertTextEventData
 } from 'ckeditor5/src/typing.js';
+
+import {
+	afterCopySelectionMarkersFragment,
+	beforeCopySelectionMarkersFragment
+} from '@ckeditor/ckeditor5-clipboard';
 
 import TableWalker from './tablewalker.js';
 import TableUtils from './tableutils.js';
@@ -113,10 +115,7 @@ export default class TableSelection extends Plugin {
 
 		return this.editor.model.change( writer => {
 			const documentFragment = writer.createDocumentFragment();
-
-			// setup fake markers in content
-			const copyableMarkers = this._extractCopyableMarkersInSelection( writer );
-			const insertedFakeMarkersElements = this._wrapCopyableMarkersWithFakeElements( writer, copyableMarkers );
+			const insertedFakeMarkersElements = beforeCopySelectionMarkersFragment( writer );
 
 			const { first: firstColumn, last: lastColumn } = tableUtils.getColumnIndexes( selectedCells );
 			const { first: firstRow, last: lastRow } = tableUtils.getRowIndexes( selectedCells );
@@ -151,106 +150,10 @@ export default class TableSelection extends Plugin {
 			writer.insert( table, documentFragment, 0 );
 
 			// cleanup fake markers
-			const fakeFragmentMarkersInMap = this._restoreAllFakeMarkersFromElement( writer, documentFragment );
-			const fakeMarkersRanges = this._constructElementsMarkersRanges( writer, fakeFragmentMarkersInMap );
-
-			for ( const [ marker, range ] of Object.entries( fakeMarkersRanges ) ) {
-				documentFragment.markers.set( marker, range );
-			}
-
-			const allFakeMarkers = [
-				...Array.from( insertedFakeMarkersElements.values() ).flat(),
-				...Array.from( Object.values( fakeFragmentMarkersInMap ) ).flat()
-			];
-
-			for ( const element of allFakeMarkers ) {
-				writer.remove( element );
-			}
+			afterCopySelectionMarkersFragment( writer, documentFragment, insertedFakeMarkersElements );
 
 			return documentFragment;
 		} );
-	}
-
-	private _extractCopyableMarkersInSelection( writer: Writer ) {
-		const selection = writer.model.document.selection;
-		const selectionRanges = Array.from( selection.getRanges()! );
-
-		return selectionRanges
-			.flatMap( selectionRange =>
-				Array
-					.from( writer.model.markers.getMarkersIntersectingRange( selectionRange ) )
-					.filter( marker => marker.name.startsWith( 'comment:' ) )
-			);
-	}
-
-	private _wrapCopyableMarkersWithFakeElements( writer: Writer, markers: Array<Marker> ) {
-		const mappedMarkers = new Map<Marker, Array<Element>>();
-		const sortedMarkers = markers
-			.flatMap( marker => {
-				const { start, end } = marker.getRange();
-
-				return [
-					{ position: start, marker },
-					{ position: end, marker }
-				];
-			} )
-			// Markers position is sorted backwards to ensure that the insertion of fake markers will not change
-			// the position of the next markers.
-			.sort( ( { position: posA }, { position: posB } ) => posA.isBefore( posB ) ? 1 : -1 );
-
-		for ( const { position, marker } of sortedMarkers ) {
-			const fakeMarker = writer.createElement( '$marker', { 'data-name': marker.name } );
-
-			if ( !mappedMarkers.has( marker ) ) {
-				mappedMarkers.set( marker, [] );
-			}
-
-			mappedMarkers.get( marker )!.push( fakeMarker );
-			writer.insert( fakeMarker, position );
-		}
-
-		return mappedMarkers;
-	}
-
-	private _restoreAllFakeMarkersFromElement( writer: Writer, fragment: DocumentFragment ) {
-		const fakeMarkerElements: Record<string, Array<Element>> = {};
-
-		for ( const element of fragment.getChildren() ) {
-			for ( const { item } of writer.createRangeOn( element ) ) {
-				if ( !item.is( 'element' ) ) {
-					continue;
-				}
-
-				const fakeMarkerName = item.getAttribute( 'data-name' ) as string | undefined;
-				if ( !fakeMarkerName ) {
-					continue;
-				}
-
-				( fakeMarkerElements[ fakeMarkerName ] ||= [] ).push( item );
-			}
-		}
-
-		return fakeMarkerElements;
-	}
-
-	private _constructElementsMarkersRanges( writer: Writer, markers: Record<string, Array<Element>> ): Record<string, Range> {
-		return Object
-			.entries( markers )
-			.reduce<Record<string, Range>>( ( acc, [ markerName, [ startElement, endElement ] ] ) => {
-				const endPosition = writer.createPositionAt( endElement, 'before' );
-				const endPath = [ ...endPosition.path ];
-
-				// handle removal of end node which affects range end
-				endPath[ endPath.length - 1 ]--;
-
-				const range = new Range(
-					writer.createPositionAt( startElement, 'before' ),
-					writer.createPositionFromPath( endPosition.root, endPath )
-				);
-
-				acc[ markerName ] = range;
-				return acc;
-			}, { } );
 	}
 
 	/**
