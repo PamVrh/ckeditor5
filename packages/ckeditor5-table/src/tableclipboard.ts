@@ -10,9 +10,9 @@
 import {
 	ClipboardPipeline,
 	type ClipboardEventData,
-	type ClipboardOutputTransformationEvent,
 	type ViewDocumentCopyEvent,
-	type ViewDocumentCutEvent
+	type ViewDocumentCutEvent,
+	type ViewDocumentClipboardOutputEvent
 } from 'ckeditor5/src/clipboard.js';
 
 import { Plugin } from 'ckeditor5/src/core.js';
@@ -93,8 +93,8 @@ export default class TableClipboard extends Plugin {
 	 * @param data Clipboard event data.
 	 */
 	private _onCopyCut( evt: EventInfo<'copy' | 'cut'>, data: DomEventData<ClipboardEvent> & ClipboardEventData ) {
+		const view = this.editor.editing.view;
 		const tableSelection = this.editor.plugins.get( TableSelection );
-		const clipboardPipeline = this.editor.plugins.get( 'ClipboardPipeline' );
 
 		if ( !tableSelection.getSelectedTableCells() ) {
 			return;
@@ -107,9 +107,9 @@ export default class TableClipboard extends Plugin {
 		data.preventDefault();
 		evt.stop();
 
-		clipboardPipeline.fire<ClipboardOutputTransformationEvent>( 'outputTransformation', {
+		view.document.fire<ViewDocumentClipboardOutputEvent>( 'clipboardOutput', {
 			dataTransfer: data.dataTransfer,
-			content: tableSelection.getSelectionAsFragment()!,
+			content: this.editor.data.toView( tableSelection.getSelectionAsFragment()! ),
 			method: evt.name
 		} );
 	}
