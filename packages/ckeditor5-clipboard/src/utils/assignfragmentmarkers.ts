@@ -77,7 +77,7 @@ function _getAllFakeMarkersFromElement( writer: Writer, fragment: DocumentFragme
 	return fakeMarkerElements;
 }
 
-function _removeFakeMarkersFromFragment(
+function _removeFakeMarkersInsideFragment(
 	writer: Writer,
 	markers: Record<string, Array<Element>>,
 	documentFragment: DocumentFragment
@@ -111,6 +111,9 @@ function _removeFakeMarkersFromFragment(
 				return acc;
 			}
 
+			// [ foo <fake-marker>aaa</fake-marker> test ]
+			//                    ^
+			// handle case when marker is between start and end of selection
 			const startPosition = writer.createPositionAt( startElement, 'before' );
 			writer.remove( startElement );
 
@@ -138,16 +141,24 @@ export function afterCopySelectionMarkersFragment(
 	insertedFakeMarkersElements: Map<Marker, Array<Element>>
 ): void {
 	const fakeFragmentMarkersInMap = _getAllFakeMarkersFromElement( writer, documentFragment );
-	const fakeMarkersRanges = _removeFakeMarkersFromFragment(
-		writer,
-		fakeFragmentMarkersInMap,
-		documentFragment
-	);
+	const fakeMarkersRangesInsideRange = _removeFakeMarkersInsideFragment( writer, fakeFragmentMarkersInMap, documentFragment );
 
-	for ( const [ marker, range ] of Object.entries( fakeMarkersRanges ) ) {
+	for ( const [ marker, range ] of Object.entries( fakeMarkersRangesInsideRange ) ) {
 		documentFragment.markers.set( marker, range );
 	}
 
+	// <fake-marker>[ Foo ]</fake-marker>
+	//      ^                    ^
+	// handle case when selection is inside marker
+	for ( const [ marker ] of insertedFakeMarkersElements.entries() ) {
+		if ( fakeMarkersRangesInsideRange[ marker.name ] ) {
+			continue;
+		}
+
+		documentFragment.markers.set( marker.name, writer.createRangeIn( documentFragment ) );
+	}
+
+	// remove remain markers inserted to original element (source of copy)
 	for ( const element of Array.from( insertedFakeMarkersElements.values() ).flat() ) {
 		writer.remove( element );
 	}
