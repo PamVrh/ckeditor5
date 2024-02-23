@@ -52,7 +52,7 @@ function _wrapCopyableMarkersWithFakeElements( writer: Writer, markers: Array<Ma
 	return mappedMarkers;
 }
 
-function _restoreAllFakeMarkersFromElement( writer: Writer, fragment: DocumentFragment ) {
+function _getAllFakeMarkersFromElement( writer: Writer, fragment: DocumentFragment ) {
 	const fakeMarkerElements: Record<string, Array<Element>> = {};
 
 	for ( const element of fragment.getChildren() ) {
@@ -108,7 +108,7 @@ export function afterCopySelectionMarkersFragment(
 	documentFragment: DocumentFragment,
 	insertedFakeMarkersElements: Map<Marker, Array<Element>>
 ): void {
-	const fakeFragmentMarkersInMap = _restoreAllFakeMarkersFromElement( writer, documentFragment );
+	const fakeFragmentMarkersInMap = _getAllFakeMarkersFromElement( writer, documentFragment );
 	const fakeMarkersRanges = _constructElementsMarkersRanges( writer, fakeFragmentMarkersInMap );
 
 	for ( const [ marker, range ] of Object.entries( fakeMarkersRanges ) ) {
