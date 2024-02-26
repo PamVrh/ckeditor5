@@ -7,6 +7,8 @@
  * @module table/tableclipboard
  */
 
+import { chunk } from 'lodash-es';
+
 import {
 	ClipboardPipeline,
 	type ClipboardEventData,
@@ -265,23 +267,34 @@ export default class TableClipboard extends Plugin {
 				{}
 			);
 
-		for ( const [ markerName, [ startNode, endNode ] ] of Object.entries( markersFakeElements ) ) {
-			const range = new Range(
-				writer.createPositionAt( startNode, 'before' ),
-				writer.createPositionAt( endNode, 'before' )
-			);
+		// sometimes fake markers are duplicated and there is more than two elements in array.
+		// it can happen if you copy column from first table with single marker and then paste
+		// it as row to second table
+		for ( const [ markerName, positions ] of Object.entries( markersFakeElements ) ) {
+			const positionsChunks = chunk( positions, 2 );
 
-			writer.addMarker( markerName, {
-				// We are inserting some content saved in the document fragment, so these
-				// markers must affect data if they were put into the document fragment
-				usingOperation: true,
-				// All markers affecting data must use operations.
-				affectsData: true,
-				range
-			} );
+			for ( let chunkOffset = 0; chunkOffset < positionsChunks.length; ++chunkOffset ) {
+				const [ startNode, endNode ] = positionsChunks[ chunkOffset ];
 
-			writer.remove( startNode );
-			writer.remove( endNode );
+				const range = new Range(
+					writer.createPositionAt( startNode, 'before' ),
+					writer.createPositionAt( endNode, 'before' )
+				);
+
+				const chunkMarkerName = chunkOffset > 0 ? `${ markerName }:${ chunkOffset + 1 }` : markerName;
+
+				writer.addMarker( chunkMarkerName, {
+					// We are inserting some content saved in the document fragment, so these
+					// markers must affect data if they were put into the document fragment
+					usingOperation: true,
+					// All markers affecting data must use operations.
+					affectsData: true,
+					range
+				} );
+
+				writer.remove( startNode );
+				writer.remove( endNode );
+			}
 		}
 	}
 
