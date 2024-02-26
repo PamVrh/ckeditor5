@@ -172,10 +172,7 @@ function removeFakeMarkersInsideFragment( writer: Writer, fragment: DocumentFrag
  * @param writer An instance of the model writer.
  * @param selection Selection to be checked.
  */
-export function insertAndCollectFakeMarkers(
-	writer: Writer,
-	selection: Selection | DocumentSelection = writer.model.document.selection
-): Map<Marker, Array<Element>> {
+export function insertAndCollectFakeMarkers( writer: Writer, selection: Selection | DocumentSelection ): Map<Marker, Array<Element>> {
 	const copyableMarkers = getCopyableMarkersFromSelection( writer, selection );
 
 	return insertFakeMarkersElements( writer, copyableMarkers );
