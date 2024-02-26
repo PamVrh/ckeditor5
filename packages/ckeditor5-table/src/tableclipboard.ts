@@ -276,24 +276,27 @@ export default class TableClipboard extends Plugin {
 			for ( let chunkOffset = 0; chunkOffset < positionsChunks.length; ++chunkOffset ) {
 				const [ startNode, endNode ] = positionsChunks[ chunkOffset ];
 
-				const range = new Range(
-					writer.createPositionAt( startNode, 'before' ),
-					writer.createPositionAt( endNode, 'before' )
-				);
+				if ( endNode ) {
+					const range = new Range(
+						writer.createPositionAt( startNode, 'before' ),
+						writer.createPositionAt( endNode, 'before' )
+					);
 
-				const chunkMarkerName = chunkOffset > 0 ? `${ markerName }:${ chunkOffset + 1 }` : markerName;
+					const chunkMarkerName = chunkOffset > 0 ? `${ markerName }:${ chunkOffset + 1 }` : markerName;
 
-				writer.addMarker( chunkMarkerName, {
-					// We are inserting some content saved in the document fragment, so these
-					// markers must affect data if they were put into the document fragment
-					usingOperation: true,
-					// All markers affecting data must use operations.
-					affectsData: true,
-					range
-				} );
+					writer.addMarker( chunkMarkerName, {
+						// We are inserting some content saved in the document fragment, so these
+						// markers must affect data if they were put into the document fragment
+						usingOperation: true,
+						// All markers affecting data must use operations.
+						affectsData: true,
+						range
+					} );
+
+					writer.remove( endNode );
+				}
 
 				writer.remove( startNode );
-				writer.remove( endNode );
 			}
 		}
 	}
