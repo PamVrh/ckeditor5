@@ -28,10 +28,7 @@ export { default as PastePlainText } from './pasteplaintext.js';
 export { default as DragDropTarget } from './dragdroptarget.js';
 export { default as DragDropBlockToolbar } from './dragdropblocktoolbar.js';
 
-export {
-	collectAndRemoveFakeMarkers,
-	insertAndCollectFakeMarkers
-} from './utils/insertAndCollectFakeMarkers.js';
+export { collectAndRemoveFakeMarkers, insertAndCollectFakeMarkers } from './utils/insertAndCollectFakeMarkers.js';
 
 export type {
 	ViewDocumentClipboardInputEvent,

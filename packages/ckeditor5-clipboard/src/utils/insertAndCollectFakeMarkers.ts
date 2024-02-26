@@ -17,18 +17,40 @@ import {
  * @module clipboard/utils/insertAndCollectFakeMarkers
  */
 
-function _getCopyableMarkersFromSelection( writer: Writer, selection: Selection | DocumentSelection ) {
-	const selectionRanges = Array.from( selection.getRanges()! );
-
-	return selectionRanges
-		.flatMap( selectionRange =>
-			Array
-				.from( writer.model.markers.getMarkersIntersectingRange( selectionRange ) )
-				.filter( marker => marker.name.startsWith( 'comment:' ) )
-		);
+/**
+ * Checks if marker can be copied.
+ *
+ * @param marker Instance of marker.
+ */
+function isCopyableMarker( marker: Marker ): boolean {
+	return marker.name.startsWith( 'comment:' );
 }
 
-function _insertFakeMarkersElements( writer: Writer, markers: Array<Marker> ) {
+/**
+ * Returns array of markers that can be copied in specified selection.
+ *
+ * @param writer An instance of the model writer.
+ * @param selection  Selection which will be checked.
+ */
+function _getCopyableMarkersFromSelection( writer: Writer, selection: Selection | DocumentSelection ): Array<Marker> {
+	const selectionRanges = Array.from( selection.getRanges()! );
+
+	return selectionRanges.flatMap( selectionRange =>
+		Array
+			.from( writer.model.markers.getMarkersIntersectingRange( selectionRange ) )
+			.filter( isCopyableMarker )
+	);
+}
+
+/**
+ * Inserts specified array of fake markers elements to document and assigns them `type` and `name` attributes.
+ * Fake markers elements are used to calculate position of markers on pasted fragment that were transformed during
+ * steps between copy and paste.
+ *
+ * @param writer An instance of the model writer.
+ * @param markers Array of markers that will be inserted.
+ */
+function _insertFakeMarkersElements( writer: Writer, markers: Array<Marker> ): Map<Marker, Array<Element>> {
 	const mappedMarkers = new Map<Marker, Array<Element>>();
 	const sortedMarkers = markers
 		.flatMap( marker => {
@@ -60,7 +82,15 @@ function _insertFakeMarkersElements( writer: Writer, markers: Array<Marker> ) {
 	return mappedMarkers;
 }
 
-function _getAllFakeMarkersFromElement( writer: Writer, fragment: DocumentFragment ) {
+/**
+ * Returns object that contains mapping between marker names and corresponding fake-marker elements.
+ * Function returns fake-markers elements that starts or ends or are present inside selected fragment.
+ * Markers that start before and end after of specified fragment are not returned at all.
+ *
+ * @param writer An instance of the model writer.
+ * @param fragment The element to be checked.
+ */
+function _getAllFakeMarkersFromElement( writer: Writer, fragment: DocumentFragment ): Record<string, Array<Element>> {
 	const fakeMarkerElements: Record<string, Array<Element>> = {};
 
 	for ( const element of fragment.getChildren() ) {
@@ -81,35 +111,48 @@ function _getAllFakeMarkersFromElement( writer: Writer, fragment: DocumentFragme
 	return fakeMarkerElements;
 }
 
-function _removeFakeMarkersInsideFragment(
-	writer: Writer,
-	markers: Record<string, Array<Element>>,
-	documentFragment: DocumentFragment
-): Record<string, Range> {
+/**
+ * Removes all inserted in previous functions markers that are present in specified fragment. It removes only
+ * markers that are have at least start or end position inside fragment.  Markers that start before and
+ * end after of specified fragment are not removed at all.
+ *
+ * @param writer An instance of the model writer.
+ * @param fragment The element to be checked.
+ */
+function _removeFakeMarkersInsideFragment( writer: Writer, fragment: DocumentFragment ): Record<string, Range> {
+	const fakeFragmentMarkersInMap = _getAllFakeMarkersFromElement( writer, fragment );
+
 	return Object
-		.entries( markers )
+		.entries( fakeFragmentMarkersInMap )
 		.reduce<Record<string, Range>>( ( acc, [ markerName, [ startElement, endElement ] ] ) => {
+			// marker is not entire inside specified fragment but rather starts or ends inside it
 			if ( !endElement ) {
-				// <fake-marker> [ phrase</fake-marker> phrase ]
-				//   ^
-				// handle case when marker is just before start of selection
-				if ( startElement.getAttribute( 'data-type' ) === 'end' ) {
-					const endPosition = writer.createPositionAt( startElement, 'before' );
-					const startPosition = writer.createPositionFromPath( endPosition.root, [ 0 ] );
+				const type = startElement.getAttribute( 'data-type' );
 
-					writer.remove( startElement );
-					acc[ markerName ] = new Range( startPosition, endPosition );
-				}
+				switch ( type ) {
+					// <fake-marker> [ phrase</fake-marker> phrase ]
+					//   ^
+					// handle case when marker is just before start of selection
+					case 'end': {
+						const endPosition = writer.createPositionAt( startElement, 'before' );
+						const startPosition = writer.createPositionFromPath( endPosition.root, [ 0 ] );
 
-				// [<fake-marker>phrase]</fake-marker>
-				//                           ^
-				// handle case when fake marker is after selection
-				if ( startElement.getAttribute( 'data-type' ) === 'start' ) {
-					const startPosition = writer.createPositionAt( startElement, 'before' );
-					writer.remove( startElement );
+						writer.remove( startElement );
+						acc[ markerName ] = new Range( startPosition, endPosition );
+						break;
+					}
 
-					const endPosition = writer.createPositionAt( documentFragment, 'end' );
-					acc[ markerName ] = new Range( startPosition, endPosition );
+					// [<fake-marker>phrase]</fake-marker>
+					//                           ^
+					// handle case when fake marker is after selection
+					case 'start': {
+						const startPosition = writer.createPositionAt( startElement, 'before' );
+						writer.remove( startElement );
+
+						const endPosition = writer.createPositionAt( fragment, 'end' );
+						acc[ markerName ] = new Range( startPosition, endPosition );
+						break;
+					}
 				}
 
 				return acc;
@@ -129,6 +172,13 @@ function _removeFakeMarkersInsideFragment(
 		}, { } );
 }
 
+/**
+ * First step of copying markers. Inserts into specified fragment fake markers elements with positions of
+ * real markers that will be used later to calculate positions of real markers.
+ *
+ * @param writer An instance of the model writer.
+ * @param selection Selection to be checked.
+ */
 export function insertAndCollectFakeMarkers(
 	writer: Writer,
 	selection: Selection | DocumentSelection = writer.model.document.selection
@@ -138,16 +188,22 @@ export function insertAndCollectFakeMarkers(
 	return _insertFakeMarkersElements( writer, copyableMarkers );
 }
 
+/**
+ * Calculates new positions of real markers using fake markers that are present inside fragment.
+ *
+ * @param writer An instance of the model writer.
+ * @param selection Selection to be checked.
+ * @param insertedFakeMarkersElements Map of fake markers with corresponding fake elements.
+ */
 export function collectAndRemoveFakeMarkers(
 	writer: Writer,
-	documentFragment: DocumentFragment,
+	fragment: DocumentFragment,
 	insertedFakeMarkersElements: Map<Marker, Array<Element>>
 ): void {
-	const fakeFragmentMarkersInMap = _getAllFakeMarkersFromElement( writer, documentFragment );
-	const fakeMarkersRangesInsideRange = _removeFakeMarkersInsideFragment( writer, fakeFragmentMarkersInMap, documentFragment );
+	const fakeMarkersRangesInsideRange = _removeFakeMarkersInsideFragment( writer, fragment );
 
 	for ( const [ marker, range ] of Object.entries( fakeMarkersRangesInsideRange ) ) {
-		documentFragment.markers.set( marker, range );
+		fragment.markers.set( marker, range );
 	}
 
 	// <fake-marker>[ Foo ]</fake-marker>
@@ -158,7 +214,7 @@ export function collectAndRemoveFakeMarkers(
 			continue;
 		}
 
-		documentFragment.markers.set( marker.name, writer.createRangeIn( documentFragment ) );
+		fragment.markers.set( marker.name, writer.createRangeIn( fragment ) );
 	}
 
 	// remove remain markers inserted to original element (source of copy)
