@@ -5,10 +5,11 @@
 
 /* globals document */
 import ClassicTestEditor from '@ckeditor/ckeditor5-core/tests/_utils/classictesteditor.js';
-import Clipboard from '@ckeditor/ckeditor5-clipboard/src/clipboard.js';
 import Paragraph from '@ckeditor/ckeditor5-paragraph/src/paragraph.js';
 import testUtils from '@ckeditor/ckeditor5-core/tests/_utils/utils.js';
 import { setData as setModelData } from '@ckeditor/ckeditor5-engine/src/dev-utils/model.js';
+
+import Clipboard from '../../src/clipboard.js';
 
 describe( 'Insert and collect fake markers', () => {
 	let editor, model, modelRoot, element, viewDocument, clipboardPipeline;
