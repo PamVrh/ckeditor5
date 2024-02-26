@@ -32,7 +32,7 @@ function isCopyableMarker( marker: Marker ): boolean {
  * @param writer An instance of the model writer.
  * @param selection  Selection which will be checked.
  */
-function _getCopyableMarkersFromSelection( writer: Writer, selection: Selection | DocumentSelection ): Array<Marker> {
+function getCopyableMarkersFromSelection( writer: Writer, selection: Selection | DocumentSelection ): Array<Marker> {
 	return Array
 		.from( selection.getRanges()! )
 		.flatMap( selectionRange => Array.from( writer.model.markers.getMarkersIntersectingRange( selectionRange ) ) )
@@ -47,7 +47,7 @@ function _getCopyableMarkersFromSelection( writer: Writer, selection: Selection 
  * @param writer An instance of the model writer.
  * @param markers Array of markers that will be inserted.
  */
-function _insertFakeMarkersElements( writer: Writer, markers: Array<Marker> ): Map<Marker, Array<Element>> {
+function insertFakeMarkersElements( writer: Writer, markers: Array<Marker> ): Map<Marker, Array<Element>> {
 	const mappedMarkers = new Map<Marker, Array<Element>>();
 	const sortedMarkers = markers
 		.flatMap( marker => {
@@ -87,7 +87,7 @@ function _insertFakeMarkersElements( writer: Writer, markers: Array<Marker> ): M
  * @param writer An instance of the model writer.
  * @param fragment The element to be checked.
  */
-function _getAllFakeMarkersFromElement( writer: Writer, fragment: DocumentFragment ): Record<string, Array<Element>> {
+function getAllFakeMarkersFromElement( writer: Writer, fragment: DocumentFragment ): Record<string, Array<Element>> {
 	return Array
 		.from( fragment.getChildren() )
 		.flatMap( element => Array.from( writer.createRangeOn( element ) ) )
@@ -112,8 +112,8 @@ function _getAllFakeMarkersFromElement( writer: Writer, fragment: DocumentFragme
  * @param writer An instance of the model writer.
  * @param fragment The element to be checked.
  */
-function _removeFakeMarkersInsideFragment( writer: Writer, fragment: DocumentFragment ): Record<string, Range> {
-	const fakeFragmentMarkersInMap = _getAllFakeMarkersFromElement( writer, fragment );
+function removeFakeMarkersInsideFragment( writer: Writer, fragment: DocumentFragment ): Record<string, Range> {
+	const fakeFragmentMarkersInMap = getAllFakeMarkersFromElement( writer, fragment );
 
 	return Object
 		.entries( fakeFragmentMarkersInMap )
@@ -176,9 +176,9 @@ export function insertAndCollectFakeMarkers(
 	writer: Writer,
 	selection: Selection | DocumentSelection = writer.model.document.selection
 ): Map<Marker, Array<Element>> {
-	const copyableMarkers = _getCopyableMarkersFromSelection( writer, selection );
+	const copyableMarkers = getCopyableMarkersFromSelection( writer, selection );
 
-	return _insertFakeMarkersElements( writer, copyableMarkers );
+	return insertFakeMarkersElements( writer, copyableMarkers );
 }
 
 /**
@@ -193,7 +193,7 @@ export function collectAndRemoveFakeMarkers(
 	fragment: DocumentFragment,
 	insertedFakeMarkersElements: Map<Marker, Array<Element>>
 ): void {
-	const fakeMarkersRangesInsideRange = _removeFakeMarkersInsideFragment( writer, fragment );
+	const fakeMarkersRangesInsideRange = removeFakeMarkersInsideFragment( writer, fragment );
 
 	for ( const [ marker, range ] of Object.entries( fakeMarkersRangesInsideRange ) ) {
 		fragment.markers.set( marker, range );
