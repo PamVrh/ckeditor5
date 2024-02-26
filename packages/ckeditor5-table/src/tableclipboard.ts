@@ -8,6 +8,7 @@
  */
 
 import { chunk } from 'lodash-es';
+import { uid, type EventInfo } from 'ckeditor5/src/utils.js';
 
 import {
 	ClipboardPipeline,
@@ -32,8 +33,6 @@ import {
 	type Selection,
 	type Writer
 } from 'ckeditor5/src/engine.js';
-
-import type { EventInfo } from 'ckeditor5/src/utils.js';
 
 import TableSelection from './tableselection.js';
 import TableWalker, { type TableSlot } from './tablewalker.js';
@@ -282,7 +281,11 @@ export default class TableClipboard extends Plugin {
 						writer.createPositionAt( endNode, 'before' )
 					);
 
-					const chunkMarkerName = chunkOffset > 0 ? `${ markerName }:${ chunkOffset + 1 }` : markerName;
+					// if copy is performed and some of markers are duplicated
+					// we have to reassign their custom id to prevent incorrect
+					// cell selection after pasting to second table
+					const chunkMarkerName = chunkOffset > 0 ?
+						`${ markerName.slice( 0, markerName.lastIndexOf( ':' ) ) }:${ uid() }` : markerName;
 
 					writer.addMarker( chunkMarkerName, {
 						// We are inserting some content saved in the document fragment, so these
