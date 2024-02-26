@@ -44,6 +44,8 @@ export default class Schema extends ObservableMixin() {
 	private readonly _attributeProperties: Record<string, AttributeProperties> = {};
 	private _compiledDefinitions?: Record<string, SchemaCompiledItemDefinition> | null;
 
+	private _customChildChecks: Map<string, any> = new Map();
+
 	/**
 	 * Creates a schema instance.
 	 */
@@ -516,11 +518,17 @@ export default class Schema extends ObservableMixin() {
 	 * The callback may return `true/false` to override `checkChild()`'s return value. If it does not return
 	 * a boolean value, the default algorithm (or other callbacks) will define `checkChild()`'s return value.
 	 */
-	public addChildCheck( callback: SchemaChildCheckCallback ): void {
+	public addChildCheck( callback: SchemaChildCheckCallback, forNode: string = '__nodeless' ): void {
+		const checksForNode = this._customChildChecks.get( forNode ) || [];
+		checksForNode.push( callback );
+		this._customChildChecks.set( forNode, checksForNode );
+
+		// move this to an init phase to have a one-time do-it-all routine.
 		this.on<SchemaCheckChildEvent>( 'checkChild', ( evt, [ ctx, childDef ] ) => {
 			// checkChild() was called with a non-registered child.
 			// In 99% cases such check should return false, so not to overcomplicate all callbacks
 			// don't even execute them.
+
 			if ( !childDef ) {
 				return;
 			}
