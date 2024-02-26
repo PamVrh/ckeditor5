@@ -284,6 +284,7 @@ export default class TableClipboard extends Plugin {
 					// if copy is performed and some of markers are duplicated
 					// we have to reassign their custom id to prevent incorrect
 					// cell selection after pasting to second table
+					// todo: Remove it after refactoring `updateMarkersIds` function
 					const chunkMarkerName = chunkOffset > 0 ?
 						`${ markerName.slice( 0, markerName.lastIndexOf( ':' ) ) }:${ uid() }` : markerName;
 

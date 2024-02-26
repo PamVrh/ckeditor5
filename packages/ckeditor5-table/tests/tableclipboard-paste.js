@@ -27,7 +27,7 @@ import TableClipboard from '../src/tableclipboard.js';
 import TableColumnResize from '../src/tablecolumnresize.js';
 
 describe( 'table clipboard', () => {
-	let editor, model, modelRoot, tableSelection, viewDocument, element;
+	let editor, model, modelRoot, tableSelection, viewDocument, element, clipboardPipeline;
 
 	testUtils.createSinonSandbox();
 
@@ -4181,6 +4181,60 @@ describe( 'table clipboard', () => {
 			) );
 		} );
 
+		it( 'should not crash if user copy column to row with markers', () => {
+			function updateCopiedMarkersIds( markers ) {
+				const markersToCheck = Array.from( markers );
+
+				markers.clear();
+
+				for ( const [ name, range ] of markersToCheck ) {
+					markers.set( `${ name }:pasted`, range );
+				}
+			}
+
+			clipboardPipeline.on(
+				'contentInsertion',
+				( evt, clipboardData ) => updateCopiedMarkersIds( clipboardData.content.markers ),
+				{ priority: 'highest' }
+			);
+
+			setModelData( model, '' );
+			pasteTable(
+				[
+					[
+						wrapWithMarker( 'First', 'comment', { name: 'pre' } ),
+						''
+					],
+					[ '', '' ]
+				]
+			);
+
+			tableSelection.setCellSelection(
+				modelRoot.getNodeByPath( [ 0, 0, 0 ] ),
+				modelRoot.getNodeByPath( [ 0, 0, 1 ] )
+			);
+
+			const data = {
+				dataTransfer: createDataTransfer(),
+				preventDefault: () => {},
+				stopPropagation: () => {}
+			};
+
+			viewDocument.fire( 'copy', data );
+
+			tableSelection.setCellSelection(
+				modelRoot.getNodeByPath( [ 0, 0, 1 ] ),
+				modelRoot.getNodeByPath( [ 0, 1, 1 ] )
+			);
+
+			viewDocument.fire( 'paste', data );
+
+			expect( data.dataTransfer.getData( 'text/html' ) ).to.equal(
+				'<figure class="table"><table><tbody><tr><td><comment-start name="pre:pasted"></comment-start>' +
+				'First<comment-end name="pre:pasted"></comment-end></td><td>&nbsp;</td></tr></tbody></table></figure>'
+			);
+		} );
+
 		function wrapWithMarker( contents, marker, attrs ) {
 			const formattedAttributes = formatAttributes( attrs );
 
@@ -4343,6 +4397,7 @@ describe( 'table clipboard', () => {
 		modelRoot = model.document.getRoot();
 		viewDocument = editor.editing.view.document;
 		tableSelection = editor.plugins.get( 'TableSelection' );
+		clipboardPipeline = editor.plugins.get( 'ClipboardPipeline' );
 	}
 
 	function pasteHtml( editor, html ) {
