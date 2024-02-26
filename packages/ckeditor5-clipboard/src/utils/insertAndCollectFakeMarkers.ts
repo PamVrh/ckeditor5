@@ -35,11 +35,8 @@ function isCopyableMarker( marker: Marker ): boolean {
 function _getCopyableMarkersFromSelection( writer: Writer, selection: Selection | DocumentSelection ): Array<Marker> {
 	return Array
 		.from( selection.getRanges()! )
-		.flatMap( selectionRange =>
-			Array
-				.from( writer.model.markers.getMarkersIntersectingRange( selectionRange ) )
-				.filter( isCopyableMarker )
-		);
+		.flatMap( selectionRange => Array.from( writer.model.markers.getMarkersIntersectingRange( selectionRange ) ) )
+		.filter( isCopyableMarker );
 }
 
 /**
