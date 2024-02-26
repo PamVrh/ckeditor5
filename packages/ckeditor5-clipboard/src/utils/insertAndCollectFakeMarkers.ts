@@ -33,13 +33,13 @@ function isCopyableMarker( marker: Marker ): boolean {
  * @param selection  Selection which will be checked.
  */
 function _getCopyableMarkersFromSelection( writer: Writer, selection: Selection | DocumentSelection ): Array<Marker> {
-	const selectionRanges = Array.from( selection.getRanges()! );
-
-	return selectionRanges.flatMap( selectionRange =>
-		Array
-			.from( writer.model.markers.getMarkersIntersectingRange( selectionRange ) )
-			.filter( isCopyableMarker )
-	);
+	return Array
+		.from( selection.getRanges()! )
+		.flatMap( selectionRange =>
+			Array
+				.from( writer.model.markers.getMarkersIntersectingRange( selectionRange ) )
+				.filter( isCopyableMarker )
+		);
 }
 
 /**
@@ -91,24 +91,20 @@ function _insertFakeMarkersElements( writer: Writer, markers: Array<Marker> ): M
  * @param fragment The element to be checked.
  */
 function _getAllFakeMarkersFromElement( writer: Writer, fragment: DocumentFragment ): Record<string, Array<Element>> {
-	const fakeMarkerElements: Record<string, Array<Element>> = {};
+	return Array
+		.from( fragment.getChildren() )
+		.flatMap( element => Array.from( writer.createRangeOn( element ) ) )
+		.reduce<Record<string, Array<Element>>>( ( fakeMarkerElements, { item } ) => {
+			if ( item.is( 'element' ) ) {
+				const fakeMarkerName = item.getAttribute( 'data-name' ) as string | undefined;
 
-	for ( const element of fragment.getChildren() ) {
-		for ( const { item } of writer.createRangeOn( element ) ) {
-			if ( !item.is( 'element' ) ) {
-				continue;
+				if ( fakeMarkerName ) {
+					( fakeMarkerElements[ fakeMarkerName ] ||= [] ).push( item );
+				}
 			}
 
-			const fakeMarkerName = item.getAttribute( 'data-name' ) as string | undefined;
-			if ( !fakeMarkerName ) {
-				continue;
-			}
-
-			( fakeMarkerElements[ fakeMarkerName ] ||= [] ).push( item );
-		}
-	}
-
-	return fakeMarkerElements;
+			return fakeMarkerElements;
+		}, {} );
 }
 
 /**
