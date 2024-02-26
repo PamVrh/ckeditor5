@@ -16,7 +16,7 @@ import type {
 	Selection,
 	DowncastWriter,
 	ViewElement,
-	ModelDeleteContentEvent,
+	ModelDeleteContentEvent
 } from 'ckeditor5/src/engine.js';
 
 import type {
@@ -24,10 +24,7 @@ import type {
 	InsertTextEventData
 } from 'ckeditor5/src/typing.js';
 
-import {
-	collectAndRemoveFakeMarkers,
-	insertAndCollectFakeMarkers
-} from '@ckeditor/ckeditor5-clipboard';
+import { collectAndRemoveFakeMarkers, insertAndCollectFakeMarkers } from 'ckeditor5/src/clipboard.js';
 
 import TableWalker from './tablewalker.js';
 import TableUtils from './tableutils.js';

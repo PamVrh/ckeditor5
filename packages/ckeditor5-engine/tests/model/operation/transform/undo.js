@@ -333,7 +333,7 @@ describe( 'transform', () => {
 			// Simulate copy. Create a document fragment that includes expected copied fragment + marker.
 			// <paragraph><$marker />A</paragraph><paragraph>B<$marker /></paragraph>
 			const docFrag = writer.createDocumentFragment();
-			const pA = writer.createElement( 'paragraph' )
+			const pA = writer.createElement( 'paragraph' );
 			const pB = writer.createElement( 'paragraph' );
 
 			writer.insertText( 'A', pA, 0 );
