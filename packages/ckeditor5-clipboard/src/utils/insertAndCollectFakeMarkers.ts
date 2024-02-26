@@ -13,6 +13,10 @@ import {
 	type Selection
 } from '@ckeditor/ckeditor5-engine';
 
+/**
+ * @module clipboard/utils/insertAndCollectFakeMarkers
+ */
+
 function _getCopyableMarkersFromSelection( writer: Writer, selection: Selection | DocumentSelection ) {
 	const selectionRanges = Array.from( selection.getRanges()! );
 

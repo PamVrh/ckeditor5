@@ -33,7 +33,7 @@ import plainTextToHtml from './utils/plaintexttohtml.js';
 import normalizeClipboardHtml from './utils/normalizeclipboarddata.js';
 import viewToPlainText from './utils/viewtoplaintext.js';
 
-import { collectAndRemoveFakeMarkers, insertAndCollectFakeMarkers } from './utils/assignfragmentmarkers.js';
+import { collectAndRemoveFakeMarkers, insertAndCollectFakeMarkers } from './utils/insertAndCollectFakeMarkers.js';
 
 // Input pipeline events overview:
 //

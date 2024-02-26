@@ -31,7 +31,7 @@ export { default as DragDropBlockToolbar } from './dragdropblocktoolbar.js';
 export {
 	collectAndRemoveFakeMarkers,
 	insertAndCollectFakeMarkers
-} from './utils/assignfragmentmarkers.js';
+} from './utils/insertAndCollectFakeMarkers.js';
 
 export type {
 	ViewDocumentClipboardInputEvent,
