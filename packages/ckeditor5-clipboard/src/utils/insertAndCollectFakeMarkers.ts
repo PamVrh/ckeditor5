@@ -106,7 +106,7 @@ function getAllFakeMarkersFromElement( writer: Writer, fragment: DocumentFragmen
 
 /**
  * Removes all inserted in previous functions markers that are present in specified fragment. It removes only
- * markers that are have at least start or end position inside fragment.  Markers that start before and
+ * markers that have at least start or end position inside fragment. Markers that start before and
  * end after of specified fragment are not removed at all.
  *
  * @param writer An instance of the model writer.
